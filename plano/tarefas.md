@@ -4,62 +4,62 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 
 ---
 
-## Etapa 1 — Fundação e Infraestrutura
+## Etapa 1 — Fundação e Infraestrutura ✅
 
 ### Dependências
 
-- [ ] Atualizar `pubspec.yaml` com: `get_it`, `sqflite`, `path`, `shared_preferences`, `flutter_localizations`, `intl`
-- [ ] Adicionar dev_dependencies: `mocktail`, `sqflite_common_ffi` (para testes)
-- [ ] Rodar `flutter pub get`
+- [x] Atualizar `pubspec.yaml` com: `get_it`, `sqflite`, `path`, `shared_preferences`, `flutter_localizations`, `intl`
+- [x] Adicionar dev_dependencies: `mocktail`, `sqflite_common_ffi` (para testes)
+- [x] Rodar `flutter pub get`
 
 ### Estrutura de Pastas
 
-- [ ] Criar `lib/config/`
-- [ ] Criar `lib/config/theme/`
-- [ ] Criar `lib/data/database/`
-- [ ] Criar `lib/data/repositories/`
-- [ ] Criar `lib/data/models/`
-- [ ] Criar `lib/domain/entities/`
-- [ ] Criar `lib/domain/enums/`
-- [ ] Criar `lib/ui/calculator/widgets/`
-- [ ] Criar `lib/ui/history/widgets/`
-- [ ] Criar `lib/ui/settings/widgets/`
-- [ ] Criar `lib/ui/core/widgets/`
-- [ ] Criar `lib/utils/extensions/`
-- [ ] Criar `lib/utils/formatters/`
-- [ ] Criar `lib/utils/l10n/`
+- [x] Criar `lib/config/`
+- [x] Criar `lib/config/theme/`
+- [x] Criar `lib/data/database/`
+- [x] Criar `lib/data/repositories/`
+- [x] Criar `lib/data/models/`
+- [x] Criar `lib/domain/entities/`
+- [x] Criar `lib/domain/enums/`
+- [x] Criar `lib/ui/calculator/widgets/`
+- [x] Criar `lib/ui/history/widgets/`
+- [x] Criar `lib/ui/settings/widgets/`
+- [x] Criar `lib/ui/core/widgets/`
+- [x] Criar `lib/utils/extensions/`
+- [x] Criar `lib/utils/formatters/`
+- [x] Criar `lib/utils/l10n/`
 
 ### Tema e Layout
 
-- [ ] Implementar `AppLayout` (spacing, padding, radius) — `lib/config/theme/app_layout.dart`
-- [ ] Implementar `AppColors` (9 seed colors) — `lib/config/theme/app_colors.dart`
-- [ ] Implementar `AppTheme` (ThemeData claro/escuro) — `lib/config/theme/app_theme.dart`
+- [x] Implementar `AppLayout` (spacing, padding, radius) — `lib/config/theme/app_layout.dart`
+- [x] Implementar `AppColors` (9 seed colors) — `lib/config/theme/app_colors.dart`
+- [x] Implementar `AppTheme` (ThemeData claro/escuro) — `lib/config/theme/app_theme.dart`
 
 ### Configuração
 
-- [ ] Criar `lib/config/dependencies.dart` (GetIt setup inicial)
-- [ ] Criar `lib/config/routes.dart` (rotas nomeadas: /, /history, /settings)
+- [x] Criar `lib/config/dependencies.dart` (GetIt setup inicial)
+- [x] Criar `lib/config/routes.dart` (rotas nomeadas: /, /history, /settings)
 
 ### Internacionalização
 
-- [ ] Criar `l10n.yaml` na raiz
-- [ ] Criar `lib/utils/l10n/app_br.arb` (português Brasileiro)
-- [ ] Criar `lib/utils/l10n/app_es.arb` (espanhol)
-- [ ] Criar `lib/utils/l10n/app_en.arb` (inglês)
-- [ ] Criar extension `context.l10n` em `lib/utils/extensions/l10n_extension.dart`
-- [ ] Configurar `flutter generate: true` se necessário
+- [x] Criar `l10n.yaml` na raiz
+- [x] Criar `lib/utils/l10n/app_pt.arb` (português base) + `app_pt_BR.arb` (brasileiro)
+- [x] Criar `lib/utils/l10n/app_es.arb` (espanhol)
+- [x] Criar `lib/utils/l10n/app_en.arb` (inglês)
+- [x] Criar extension `context.l10n` em `lib/utils/extensions/l10n_extension.dart`
+- [x] Configurar `flutter generate: true` no pubspec.yaml
 
 ### App Shell
 
-- [ ] Reescrever `lib/main.dart` com MaterialApp usando AppTheme, rotas e l10n
+- [x] Reescrever `lib/main.dart` com MaterialApp usando AppTheme, rotas e l10n
 
 ### Testes — Etapa 1
 
-- [ ] Criar `test/unit/config/theme/app_layout_test.dart`
-- [ ] Criar `test/unit/config/theme/app_colors_test.dart`
-- [ ] Criar `test/unit/config/theme/app_theme_test.dart`
-- [ ] `flutter test` — 100% verde
-- [ ] `flutter analyze` — zero warnings
+- [x] Criar `test/unit/config/theme/app_layout_test.dart`
+- [x] Criar `test/unit/config/theme/app_colors_test.dart`
+- [x] Criar `test/unit/config/theme/app_theme_test.dart`
+- [x] `flutter test` — 100% verde (27 testes)
+- [x] `flutter analyze` — zero warnings
 
 ---
 

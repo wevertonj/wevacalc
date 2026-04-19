@@ -1,0 +1,19 @@
+{
+  "@@locale": "en",
+  "appTitle": "WevaCalc",
+  "@appTitle": {
+    "description": "The application title"
+  },
+  "calculator": "Calculator",
+  "@calculator": {
+    "description": "Calculator screen title"
+  },
+  "history": "History",
+  "@history": {
+    "description": "History screen title"
+  },
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings screen title"
+  }
+}
