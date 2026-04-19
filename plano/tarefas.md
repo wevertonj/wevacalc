@@ -63,35 +63,68 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 
 ---
 
-## Etapa 2 — Domínio e Camada de Dados
+## Etapa 2 — Domínio e Camada de Dados (base) ✅
 
 ### Testes PRIMEIRO (TDD Red)
 
-- [ ] Criar `test/fixtures/` com dados de teste reutilizáveis
-- [ ] Criar `test/mocks/` com mocks centralizados
-- [ ] Criar `test/unit/domain/entities/calculation_test.dart`
-- [ ] Criar `test/unit/domain/entities/history_entry_test.dart`
-- [ ] Criar `test/unit/domain/enums/operation_type_test.dart`
-- [ ] Criar `test/unit/data/models/history_model_test.dart`
-- [ ] Criar `test/unit/data/repositories/history_repository_test.dart`
+- [x] Criar `test/fixtures/` com dados de teste reutilizáveis
+- [x] Criar `test/mocks/` com mocks centralizados
+- [x] Criar `test/unit/domain/entities/calculation_test.dart`
+- [x] Criar `test/unit/domain/entities/history_entry_test.dart`
+- [x] Criar `test/unit/domain/enums/operation_type_test.dart`
+- [x] Criar `test/unit/data/models/history_model_test.dart`
+- [x] Criar `test/unit/data/repositories/history_repository_test.dart`
 
 ### Implementação (TDD Green)
 
-- [ ] Implementar `Calculation` — `lib/domain/entities/calculation.dart`
-- [ ] Implementar `HistoryEntry` — `lib/domain/entities/history_entry.dart`
-- [ ] Implementar `OperationType` — `lib/domain/enums/operation_type.dart`
-- [ ] Implementar `ThemeModeOption` — `lib/domain/enums/theme_mode_option.dart`
-- [ ] Implementar `DecimalSeparator` — `lib/domain/enums/decimal_separator.dart`
-- [ ] Implementar `HistoryModel` — `lib/data/models/history_model.dart`
-- [ ] Implementar `AppDatabase` — `lib/data/database/app_database.dart`
-- [ ] Implementar `HistoryRepository` (interface) — `lib/data/repositories/history_repository.dart`
-- [ ] Implementar `HistoryRepositoryImpl` — `lib/data/repositories/history_repository_impl.dart`
-- [ ] Registrar database e repository no GetIt
+- [x] Implementar `Calculation` — `lib/domain/entities/calculation.dart`
+- [x] Implementar `HistoryEntry` — `lib/domain/entities/history_entry.dart`
+- [x] Implementar `OperationType` — `lib/domain/enums/operation_type.dart`
+- [x] Implementar `ThemeModeOption` — `lib/domain/enums/theme_mode_option.dart`
+- [x] Implementar `DecimalSeparator` — `lib/domain/enums/decimal_separator.dart`
+- [x] Implementar `HistoryModel` — `lib/data/models/history_model.dart`
+- [x] Implementar `AppDatabase` — `lib/data/database/app_database.dart`
+- [x] Implementar `HistoryRepository` (interface) — `lib/data/repositories/history_repository.dart`
+- [x] Implementar `HistoryRepositoryImpl` — `lib/data/repositories/history_repository_impl.dart`
+- [x] Registrar database e repository no GetIt
 
 ### Validação
 
-- [ ] `flutter test` — 100% verde
-- [ ] `flutter analyze` — zero warnings
+- [x] `flutter test` — 100% verde (66 testes)
+- [x] `flutter analyze` — zero warnings
+
+---
+
+## Etapa 2.1 — Evolução da Camada de Dados (nome, favorito, paginação) ✅
+
+### Testes PRIMEIRO (TDD Red)
+
+- [x] Atualizar `test/unit/domain/entities/history_entry_test.dart`
+  - Cenários: criação com name e isFavorite, copyWith com novos campos, equality com novos campos
+- [x] Atualizar `test/unit/data/models/history_model_test.dart`
+  - Cenários: toMap/fromMap/toEntity/fromEntity com name e isFavorite
+- [x] Atualizar `test/unit/data/repositories/history_repository_test.dart`
+  - Cenários: getPaginated, getFavorites, updateName, toggleFavorite, getById
+- [x] Atualizar `test/fixtures/history_fixtures.dart` com novos campos
+
+### Implementação (TDD Green)
+
+- [x] Adicionar `name` (String?) e `isFavorite` (bool) em `HistoryEntry`
+- [x] Atualizar `HistoryEntry.copyWith` com novos campos
+- [x] Atualizar `HistoryModel` com novos campos (toMap, fromMap, toEntity, fromEntity)
+- [x] Atualizar schema SQLite: adicionar colunas `name TEXT` e `is_favorite INTEGER NOT NULL DEFAULT 0`
+- [x] Adicionar novos métodos à interface `HistoryRepository`:
+  - `getPaginated(limit, offset)`
+  - `getFavorites(limit, offset)`
+  - `updateName(id, name)`
+  - `toggleFavorite(id)`
+  - `getById(id)`
+- [x] Implementar novos métodos em `HistoryRepositoryImpl`
+
+### Validação
+
+- [x] `flutter test` — 100% verde (98 testes)
+- [x] `flutter analyze` — zero warnings
 
 ---
 
@@ -106,7 +139,7 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 - [ ] Criar `test/unit/utils/formatters/number_formatter_test.dart`
   - Cenários: ponto, vírgula, milhar, sem decimais, negativos
 - [ ] Criar `test/unit/ui/calculator/calculator_view_model_test.dart`
-  - Cenários: estado inicial, inputDigit, operação, =, C, ⌫, timeline, prévia resultado, persistência no histórico, carregamento de sessão
+  - Cenários: estado inicial, inputDigit, operação, =, C, ⌫, timeline, load more na timeline, prévia resultado, persistência no histórico, carregamento de sessão
 
 ### Implementação (TDD Green)
 
@@ -114,6 +147,7 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 - [ ] Implementar `ExpressionEvaluator` — `lib/domain/expression_evaluator.dart`
 - [ ] Implementar `NumberFormatter` — `lib/utils/formatters/number_formatter.dart`
 - [ ] Implementar `CalculatorViewModel` — `lib/ui/calculator/calculator_view_model.dart`
+  - Timeline com limite visível e load more
 - [ ] Registrar CalculatorViewModel no GetIt
 
 ### Validação
@@ -128,7 +162,7 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 ### Testes PRIMEIRO (TDD Red)
 
 - [ ] Criar `test/unit/ui/history/history_view_model_test.dart`
-  - Cenários: carregamento de lista, deleção individual, limpar tudo, notificações
+  - Cenários: carregamento paginado, loadMore, hasMore, deleção individual, limpar tudo, rename, toggleFavorite, filtro favoritos, notificações
 - [ ] Criar `test/unit/data/repositories/settings_repository_test.dart`
   - Cenários: salvar/carregar ThemeMode, seedColor, decimalSeparator, locale
 - [ ] Criar `test/unit/ui/settings/settings_view_model_test.dart`
@@ -137,7 +171,10 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 ### Implementação (TDD Green)
 
 - [ ] Implementar `HistoryViewModel` — `lib/ui/history/history_view_model.dart`
-  - Carrega lista, deleta, limpa, notifica listeners
+  - Carregamento paginado (loadMore, hasMore)
+  - Deleta, limpa, rename, toggleFavorite
+  - Filtro: todos / favoritos
+  - Notifica listeners
 - [ ] Implementar `SettingsRepository` (interface) — `lib/data/repositories/settings_repository.dart`
 - [ ] Implementar `SettingsRepositoryImpl` — `lib/data/repositories/settings_repository_impl.dart`
   - SharedPreferences para ThemeMode, seedColor, decimalSeparator, locale
@@ -170,11 +207,12 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
   - Grid 5×4 com layout documentado
 - [ ] Implementar `TimelineDisplay` — `lib/ui/calculator/widgets/timeline_display.dart`
   - ListView scrollável, linhas com cores diferenciadas, auto-scroll
+  - Botão "load more" no topo para carregar cálculos anteriores da sessão
   - AnimatedSwitcher para prévia de resultado
 - [ ] Implementar `CalculatorPage` — `lib/ui/calculator/calculator_page.dart`
   - Scaffold com timeline + barra de ícones + keypad
 - [ ] Barra de ícones: ⏱ (histórico) e ⚙ (configurações) — navegação sem destino por enquanto
-- [ ] Atualizar strings nos arquivos ARB (botões, labels)
+- [ ] Atualizar strings nos arquivos ARB (botões, labels, "load more")
 
 ### Validação
 
@@ -194,8 +232,13 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 ### Implementação (TDD Green)
 
 - [ ] Implementar `HistoryPage` — `lib/ui/history/history_page.dart`
-  - Lista em ordem cronológica inversa (mais recente primeiro)
-  - Cada item mostra expressão, resultado e data/hora
+  - Lista paginada em ordem cronológica inversa (mais recente primeiro)
+  - Botão "load more" no final da lista
+  - Cada item mostra: nome (se houver), expressão (truncada se longa), resultado e data/hora
+  - Ícone de favorito (★) em cada item — toque para alternar
+  - Filtro: Todos / Favoritos (tabs ou toggle)
+  - Toque longo ou menu: renomear entrada
+  - Expressões longas truncadas com "..." (expandível)
   - Animação de entrada para cada item da lista
   - Ação limpar com diálogo de confirmação
 - [ ] Implementar widgets auxiliares em `lib/ui/history/widgets/`
@@ -208,7 +251,7 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 - [ ] Integrar navegação completa: ⏱ → HistoryPage, ⚙ → SettingsPage
 - [ ] Integrar Timeline ↔ Histórico: tocar item → carrega sessão → volta à calculadora
 - [ ] Integrar com `main.dart`: carregar preferências no startup, propagar tema/locale
-- [ ] Atualizar ARBs com strings do histórico e configurações
+- [ ] Atualizar ARBs com strings do histórico e configurações (favoritos, renomear, load more, etc.)
 
 ### Validação
 
@@ -234,6 +277,8 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 - [ ] Testar fluxo: calculadora → ⚙ → mudar tema → reflexo imediato
 - [ ] Testar fluxo: calculadora → ⚙ → mudar separador → reflexo no display
 - [ ] Testar fluxo: fechar app → reabrir → preferências mantidas
+- [ ] Testar fluxo: sessão longa → load more na timeline carrega anteriores
+- [ ] Testar fluxo: histórico → load more → favoritar → filtrar → renomear
 
 ### Qualidade
 

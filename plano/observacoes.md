@@ -69,6 +69,29 @@ Cada etapa foi dimensionada para caber confortavelmente na janela de contexto de
 - O `%` tem comportamento contextual (pode ser porcentagem de um valor)
 - Decidir se usamos uma lib de parsing ou implementamos do zero
 
+### Timeline — Performance com sessões longas
+
+- A timeline da calculadora mantém todos os cálculos da sessão em memória
+- Para sessões muito longas, apenas as últimas N linhas ficam visíveis
+- Um botão "load more" no topo carrega os cálculos anteriores sob demanda
+- Isso evita renderizar centenas de widgets em sessões extensas
+
+### Histórico — Paginação e performance
+
+- O histórico pode crescer indefinidamente com o uso do app
+- Carregamento paginado (ex: 20 por página) com "load more" no final da lista
+- Expressões muito longas são truncadas na lista, com possibilidade de expandir
+- Filtro por favoritos também paginado
+- Nunca carregar todo o histórico de uma vez
+
+### Histórico — Nome e Favoritos
+
+- O usuário pode dar um nome customizado a qualquer entrada do histórico (opcional, nullable)
+- Entradas podem ser favoritadas (★) para acesso rápido
+- Favoritos aparecem primeiro na listagem (ordenação: favoritos primeiro, depois por data DESC)
+- Filtro: Todos / Apenas favoritos
+- Esses campos impactam a entity `HistoryEntry`, o model, o schema SQLite e o repository
+
 ### ViewModels sem Flutter
 
 - ViewModels usam `ChangeNotifier` que vem de `package:flutter/foundation.dart`
@@ -86,6 +109,11 @@ Cada etapa foi dimensionada para caber confortavelmente na janela de contexto de
 - Usar `sqflite_common_ffi` para rodar SQLite em testes unitários (sem device/emulador)
 - Configurar `databaseFactory` no setUp dos testes
 
+### Schema SQLite — Sem versionamento por enquanto
+
+- Como não há usuários ainda, o schema pode ser alterado diretamente sem migrations versionadas
+- Quando houver versão publicada, migrations serão necessárias para preservar dados dos usuários
+
 ---
 
 ## Riscos
@@ -96,3 +124,5 @@ Cada etapa foi dimensionada para caber confortavelmente na janela de contexto de
 | Animações impactando performance | Usar `const` widgets e `RepaintBoundary` onde necessário |
 | L10n setup complexo com gen_l10n | Seguir a doc oficial do Flutter para l10n |
 | Testes de SQLite em CI | Garantir que `sqflite_common_ffi` funciona no ambiente |
+| Timeline com muitos itens | Limitar itens visíveis + load more para evitar jank |
+| Histórico muito grande | Paginação via LIMIT/OFFSET no SQLite |

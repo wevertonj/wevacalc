@@ -45,6 +45,10 @@ A tela funciona como uma **timeline vertical** com scroll:
 
 Conforme o usuário confirma um cálculo (pressiona `=`), a linha atual sobe para o histórico da timeline e uma nova linha de entrada aparece.
 
+#### Performance — Load More
+
+Para sessões longas com muitos cálculos, a timeline exibe apenas as últimas N linhas por padrão. Um botão "load more" no topo permite carregar os cálculos anteriores da sessão sob demanda. Isso evita renderizar centenas de widgets simultaneamente.
+
 ### Barra de Ícones
 
 - **Ícone de relógio (⏱)**: Abre o histórico salvo

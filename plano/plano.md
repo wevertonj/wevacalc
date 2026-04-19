@@ -2,7 +2,7 @@
 
 ## Resumo
 
-O projeto está dividido em **7 etapas** sequenciais. As **etapas 1-4** cobrem toda a lógica de negócio, dados e infraestrutura (sem UI). As **etapas 5-7** cobrem toda a interface visual, integração e polimento. Cada etapa cabe na janela de contexto de 172k tokens. Todas seguem o fluxo TDD obrigatório (Red → Green → Refactor).
+O projeto está dividido em **8 etapas** sequenciais. As **etapas 1-4** cobrem toda a lógica de negócio, dados e infraestrutura (sem UI). As **etapas 5-8** cobrem toda a interface visual, integração e polimento. Cada etapa cabe na janela de contexto de 172k tokens. Todas seguem o fluxo TDD obrigatório (Red → Green → Refactor).
 
 ---
 
@@ -32,9 +32,9 @@ O projeto está dividido em **7 etapas** sequenciais. As **etapas 1-4** cobrem t
 
 ---
 
-## Etapa 2 — Domínio e Camada de Dados
+## Etapa 2 — Domínio e Camada de Dados (base)
 
-**Objetivo**: Criar as entidades de negócio, enums, models de banco, database helper com migrations e o HistoryRepository.
+**Objetivo**: Criar as entidades de negócio, enums, models de banco, database helper e o HistoryRepository com CRUD básico.
 
 **Escopo**:
 
@@ -44,7 +44,7 @@ O projeto está dividido em **7 etapas** sequenciais. As **etapas 1-4** cobrem t
 - **Enums**: `ThemeModeOption` (light, dark, system)
 - **Enums**: `DecimalSeparator` (dot, comma)
 - **Models**: `HistoryModel` (toMap, fromMap, toEntity)
-- **Database**: `AppDatabase` (SQLite helper, migrations versionadas)
+- **Database**: `AppDatabase` (SQLite helper)
 - **Repository**: `HistoryRepository` (interface) — getAll, add, delete, clear
 - **Repository**: `HistoryRepositoryImpl` (implementação com SQLite)
 - Registrar database e repository no GetIt
@@ -56,7 +56,35 @@ O projeto está dividido em **7 etapas** sequenciais. As **etapas 1-4** cobrem t
 - Unitários: `HistoryModel` (serialização/deserialização toMap/fromMap/toEntity)
 - Unitários: `HistoryRepositoryImpl` (CRUD com banco em memória)
 
-**Entregável**: Camada de dados completa e testada, pronta para ser consumida pelos ViewModels.
+**Entregável**: Camada de dados base completa e testada.
+
+---
+
+## Etapa 2.1 — Evolução da Camada de Dados (nome, favorito, paginação)
+
+**Objetivo**: Estender a camada de dados com suporte a nome customizado, favoritos e paginação no histórico. Como não há usuários ainda, o schema do banco é alterado diretamente (sem migration versionada).
+
+**Escopo**:
+
+- **HistoryEntry**: Adicionar campos `name` (String?, opcional) e `isFavorite` (bool, default false)
+- **HistoryModel**: Adicionar campos `name` e `isFavorite` com serialização
+- **Schema SQLite**: Adicionar colunas `name TEXT` e `is_favorite INTEGER NOT NULL DEFAULT 0`
+- **HistoryRepository** (interface): Novos métodos:
+  - `getPaginated(limit, offset)` — paginação com LIMIT/OFFSET
+  - `getFavorites(limit, offset)` — apenas favoritos, paginado
+  - `updateName(id, name)` — renomear entrada
+  - `toggleFavorite(id)` — alternar favorito
+  - `getById(id)` — buscar entrada individual
+- **HistoryRepositoryImpl**: Implementação dos novos métodos
+- Atualizar fixtures e testes existentes para incluir os novos campos
+
+**Testes**:
+
+- Unitários: `HistoryEntry` com name e isFavorite (criação, copyWith, equality)
+- Unitários: `HistoryModel` com novos campos (toMap, fromMap, toEntity, fromEntity)
+- Unitários: `HistoryRepositoryImpl` — getPaginated, getFavorites, updateName, toggleFavorite, getById
+
+**Entregável**: Camada de dados completa com suporte a nome, favorito e paginação. Pronta para ser consumida pelos ViewModels.
 
 ---
 
@@ -81,7 +109,8 @@ O projeto está dividido em **7 etapas** sequenciais. As **etapas 1-4** cobrem t
   - Monta a expressão completa (números + operadores)
   - Exibe prévia do resultado em tempo real
   - Confirma cálculo (`=`) e adiciona ao histórico
-  - Timeline de cálculos da sessão atual
+  - Timeline de cálculos da sessão atual com "load more" para sessões longas
+  - Controle de quantidade visível na timeline (ex: últimas 20 linhas) com carregamento sob demanda
   - Integração com `HistoryRepository` para persistir resultados
   - Carregamento de sessão a partir do histórico
 
@@ -90,7 +119,7 @@ O projeto está dividido em **7 etapas** sequenciais. As **etapas 1-4** cobrem t
 - Unitários: `Add2Engine` (todos os cenários de entrada, backspace, zeros, 00)
 - Unitários: `ExpressionEvaluator` (operações, precedência, %, erros)
 - Unitários: `NumberFormatter` (ponto, vírgula, milhar)
-- Unitários: `CalculatorViewModel` (estado inicial, inputDigit, operações, =, C, ⌫, timeline, persistência)
+- Unitários: `CalculatorViewModel` (estado inicial, inputDigit, operações, =, C, ⌫, timeline, load more na timeline, persistência)
 
 **Entregável**: Toda a lógica da calculadora funcional e testada, sem nenhuma dependência de UI.
 
@@ -103,9 +132,14 @@ O projeto está dividido em **7 etapas** sequenciais. As **etapas 1-4** cobrem t
 **Escopo**:
 
 - **HistoryViewModel**:
-  - Carrega lista de histórico do repository
+  - Carrega lista de histórico do repository **paginada** (ex: 20 por página)
+  - Método `loadMore()` para carregar próxima página
+  - Controle de `hasMore` para saber se há mais páginas
   - Deleta entrada individual
-  - Limpa todo o histórico
+  - Limpa todo o histórico com reset de paginação
+  - Renomear entrada (`updateName`)
+  - Favoritar/desfavoritar entrada (`toggleFavorite`)
+  - Filtro: todos / apenas favoritos
   - Notifica listeners sobre mudanças
 - **SettingsRepository**: Interface + implementação com SharedPreferences
   - Salvar/carregar: ThemeMode, seedColor, decimalSeparator, locale
@@ -117,7 +151,7 @@ O projeto está dividido em **7 etapas** sequenciais. As **etapas 1-4** cobrem t
 
 **Testes**:
 
-- Unitários: `HistoryViewModel` (carregamento, deleção, limpeza, notificações)
+- Unitários: `HistoryViewModel` (carregamento paginado, loadMore, hasMore, deleção, limpeza, rename, toggleFavorite, filtro favoritos, notificações)
 - Unitários: `SettingsRepository` (CRUD de preferências)
 - Unitários: `SettingsViewModel` (estado inicial, alteração de preferências, persistência)
 
@@ -136,6 +170,8 @@ O projeto está dividido em **7 etapas** sequenciais. As **etapas 1-4** cobrem t
 - **CalculatorKeypad**: Grid de botões (5 linhas × 4 colunas)
   - Layout: C, %, ⌫, ÷ | 7, 8, 9, × | 4, 5, 6, − | 1, 2, 3, + | 000, 00, 0, =
 - **TimelineDisplay**: Widget scrollável mostrando histórico da sessão
+  - Exibe apenas as últimas N linhas por padrão
+  - Botão "load more" no topo para carregar cálculos anteriores da sessão
   - Linhas anteriores (cor secundária/sutil)
   - Linha atual (branco) — expressão sendo digitada
   - Última linha (cinza) — prévia do resultado
@@ -150,7 +186,7 @@ O projeto está dividido em **7 etapas** sequenciais. As **etapas 1-4** cobrem t
 
 - Widget: `CalculatorButton` responde a toque e exibe variantes
 - Widget: `CalculatorKeypad` exibe todos os botões
-- Widget: `TimelineDisplay` exibe linhas e faz scroll
+- Widget: `TimelineDisplay` exibe linhas, faz scroll e exibe "load more"
 - Widget: `CalculatorPage` renderiza corretamente
 - Widget: Integração teclado → display (digitar e ver resultado)
 
@@ -165,8 +201,13 @@ O projeto está dividido em **7 etapas** sequenciais. As **etapas 1-4** cobrem t
 **Escopo**:
 
 - **HistoryPage**: Tela com lista de sessões salvas
-  - Lista em ordem cronológica inversa (mais recente primeiro)
-  - Cada item mostra expressão, resultado e data/hora
+  - Lista **paginada** em ordem cronológica inversa (mais recente primeiro)
+  - Botão/indicador "load more" no final da lista para carregar mais entradas
+  - Cada item mostra: nome (se houver), expressão (truncada se muito longa), resultado e data/hora
+  - Ícone de favorito (★) em cada item — toque para alternar
+  - Filtro: Todos / Favoritos (tabs ou toggle)
+  - Toque longo ou menu: renomear entrada (campo de texto para dar nome)
+  - Expressões longas exibidas em formato compacto (truncadas com "..." expandível)
   - Animação de entrada para cada item da lista
   - Botão/ação para limpar histórico com diálogo de confirmação
 - **Integração Timeline ↔ Histórico**:
@@ -182,13 +223,18 @@ O projeto está dividido em **7 etapas** sequenciais. As **etapas 1-4** cobrem t
   - Tema, separador e idioma se propagam para toda a aplicação
   - Troca de tema animada globalmente
 - Conectar navegação completa: ⏱ → HistoryPage, ⚙ → SettingsPage
-- Atualizar ARBs com strings do histórico e configurações
+- Atualizar ARBs com strings do histórico e configurações (incluindo favoritos, renomear, load more, etc.)
 
 **Testes**:
 
-- Widget: `HistoryPage` renderiza lista
+- Widget: `HistoryPage` renderiza lista paginada
+- Widget: Load more carrega mais entradas
 - Widget: Toque em item navega/carrega na timeline
+- Widget: Favoritar/desfavoritar atualiza ícone
+- Widget: Filtro favoritos mostra apenas favoritos
+- Widget: Renomear entrada atualiza nome exibido
 - Widget: Confirmação antes de limpar histórico
+- Widget: Expressão longa truncada corretamente
 - Widget: `SettingsPage` renderiza todas as seções
 - Widget: Seleção de cor atualiza tema
 - Widget: Toggle de separador atualiza formato
@@ -211,6 +257,8 @@ O projeto está dividido em **7 etapas** sequenciais. As **etapas 1-4** cobrem t
   - Fluxo completo: calculadora → histórico → carregar sessão → continuar cálculo
   - Fluxo completo: configurações → mudar tema/separador → reflexo imediato na calculadora
   - Verificar que preferências persistem ao fechar e reabrir
+  - Fluxo: sessão longa na timeline → load more carrega cálculos anteriores
+  - Fluxo: histórico paginado → load more → favoritar → filtrar → renomear
 - **Qualidade**:
   - `flutter analyze` — zero warnings
   - `flutter test` — 100% verde
@@ -235,7 +283,10 @@ O projeto está dividido em **7 etapas** sequenciais. As **etapas 1-4** cobrem t
 Etapa 1 (Fundação)
     │
     ▼
-Etapa 2 (Domínio/Dados)
+Etapa 2 (Domínio/Dados base)
+    │
+    ▼
+Etapa 2.1 (Dados: nome, favorito, paginação)
     │
     ▼
 Etapa 3 (Motor Calculadora)
@@ -257,7 +308,7 @@ Etapa 7 (Polimento)
 
 | Foco | Etapas |
 |------|--------|
-| **Lógica e Dados** | 1, 2, 3, 4 |
+| **Lógica e Dados** | 1, 2, 2.1, 3, 4 |
 | **Interface Visual** | 5, 6, 7 |
 
 ## Estimativa de Complexidade por Etapa
@@ -265,10 +316,11 @@ Etapa 7 (Polimento)
 | Etapa | Complexidade | Arquivos novos (aprox.) | Testes (aprox.) |
 |-------|-------------|------------------------|-----------------|
 | 1 — Fundação | Baixa | ~12 | ~6 |
-| 2 — Domínio/Dados | Média | ~10 | ~8 |
+| 2 — Domínio/Dados base | Média | ~10 | ~8 |
+| 2.1 — Dados (nome, favorito, paginação) | Baixa-Média | ~0 (edições) | ~10 |
 | 3 — Motor Calculadora | Alta | ~6 | ~12 |
-| 4 — Lógica Histórico/Config | Média | ~6 | ~6 |
+| 4 — Lógica Histórico/Config | Média | ~6 | ~8 |
 | 5 — UI Calculadora | Alta | ~8 | ~8 |
-| 6 — UI Histórico/Config | Média | ~8 | ~8 |
+| 6 — UI Histórico/Config | Alta | ~10 | ~12 |
 | 7 — Polimento | Baixa | ~2 | ~4 |
-| **Total** | | **~52** | **~52** |
+| **Total** | | **~54** | **~68** |
