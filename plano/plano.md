@@ -74,12 +74,11 @@ O projeto está dividido em **7 etapas** sequenciais. As **etapas 1-4** cobrem t
 - **ExpressionEvaluator**: Parser e avaliador de expressões matemáticas
   - Operações básicas (+, −, ×, ÷)
   - Porcentagem (%)
-  - Parênteses com precedência correta
   - Tratamento de erros (divisão por zero, expressão inválida)
 - **NumberFormatter**: Formatação de números com separador configurável (ponto/vírgula) e separador de milhar
 - **CalculatorViewModel**:
   - Gerencia a entrada Add2 para o número atual
-  - Monta a expressão completa (números + operadores + parênteses)
+  - Monta a expressão completa (números + operadores)
   - Exibe prévia do resultado em tempo real
   - Confirma cálculo (`=`) e adiciona ao histórico
   - Timeline de cálculos da sessão atual
@@ -89,7 +88,7 @@ O projeto está dividido em **7 etapas** sequenciais. As **etapas 1-4** cobrem t
 **Testes**:
 
 - Unitários: `Add2Engine` (todos os cenários de entrada, backspace, zeros, 00)
-- Unitários: `ExpressionEvaluator` (operações, precedência, parênteses, %, erros)
+- Unitários: `ExpressionEvaluator` (operações, precedência, %, erros)
 - Unitários: `NumberFormatter` (ponto, vírgula, milhar)
 - Unitários: `CalculatorViewModel` (estado inicial, inputDigit, operações, =, C, ⌫, timeline, persistência)
 
@@ -135,7 +134,7 @@ O projeto está dividido em **7 etapas** sequenciais. As **etapas 1-4** cobrem t
 - **CalculatorButton**: Botão circular com `AnimatedContainer` para feedback de toque
   - Variantes: numérico (neutro), operador (cor de acento), ação (C, ⌫, =)
 - **CalculatorKeypad**: Grid de botões (5 linhas × 4 colunas)
-  - Layout: C, %, ⌫, ÷ | 7, 8, 9, × | 4, 5, 6, − | 1, 2, 3, + | 00, 0, (), =
+  - Layout: C, %, ⌫, ÷ | 7, 8, 9, × | 4, 5, 6, − | 1, 2, 3, + | 000, 00, 0, =
 - **TimelineDisplay**: Widget scrollável mostrando histórico da sessão
   - Linhas anteriores (cor secundária/sutil)
   - Linha atual (branco) — expressão sendo digitada

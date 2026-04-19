@@ -100,9 +100,9 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 ### Testes PRIMEIRO (TDD Red)
 
 - [ ] Criar `test/unit/domain/add2_engine_test.dart`
-  - Cenários: dígitos simples, sequência de dígitos, backspace, 00, reset, valores limite
+  - Cenários: dígitos simples, sequência de dígitos, backspace, 00, 000, reset, valores limite
 - [ ] Criar `test/unit/domain/expression_evaluator_test.dart`
-  - Cenários: soma, subtração, multiplicação, divisão, precedência, parênteses, %, divisão por zero, expressão inválida
+  - Cenários: soma, subtração, multiplicação, divisão, precedência, %, divisão por zero, expressão inválida
 - [ ] Criar `test/unit/utils/formatters/number_formatter_test.dart`
   - Cenários: ponto, vírgula, milhar, sem decimais, negativos
 - [ ] Criar `test/unit/ui/calculator/calculator_view_model_test.dart`

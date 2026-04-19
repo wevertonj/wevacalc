@@ -60,13 +60,12 @@ Cada etapa foi dimensionada para caber confortavelmente na janela de contexto de
 ### Add2Engine
 
 - A lógica Add2 é o diferencial do app e precisa de cobertura de testes extensiva
-- Casos especiais: `0`, `00`, backspace até vazio, overflow de dígitos
-- O botão `()` substitui o ponto decimal — não existe botão `.`
+- Casos especiais: `0`, `00`, `000`, backspace até vazio, overflow de dígitos
+- Não existe botão `.` — o separador decimal é sempre implícito (Add2)
 
 ### ExpressionEvaluator
 
 - Precisa respeitar precedência matemática correta (× e ÷ antes de + e −)
-- Parênteses podem ser aninhados
 - O `%` tem comportamento contextual (pode ser porcentagem de um valor)
 - Decidir se usamos uma lib de parsing ou implementamos do zero
 

@@ -2,7 +2,7 @@
 
 ## Visão Geral
 
-A calculadora é a tela principal do WevaCalc. Utiliza o conceito **Add2** — entrada automática de 2 casas decimais sem necessidade de pressionar ponto — com suporte a todas as operações básicas e parênteses.
+A calculadora é a tela principal do WevaCalc. Utiliza o conceito **Add2** — entrada automática de 2 casas decimais sem necessidade de pressionar ponto — com suporte a todas as operações básicas.
 
 ## Conceito Add2
 
@@ -19,16 +19,16 @@ O separador decimal é **sempre implícito** — as 2 últimas posições são s
 ### Exemplo de Uso Completo
 
 ```
-(12.50 × 3.00) − 4.45
+12.50 × 3.00 − 4.45
 ```
 
-O usuário digita: `(`, `1250`, `×`, `300`, `)`, `−`, `445`
+O usuário digita: `1250`, `×`, `300`, `−`, `445`
 
 ## Funcionalidades
 
 - **Operações básicas**: Soma (+), subtração (−), multiplicação (×), divisão (÷)
 - **Porcentagem (%)**: Cálculo de porcentagem
-- **Parênteses ( )**: Agrupamento de expressões — botão `()` no lugar do ponto decimal
+- **Triplo zero (000)**: Insere três zeros de uma vez, agilizando a entrada de valores altos
 - **Limpar (C)**: Reseta o display e a expressão
 - **Backspace (⌫)**: Remove o último dígito, reajustando as casas decimais automaticamente
 - **Igual (=)**: Avalia a expressão e exibe o resultado
@@ -56,9 +56,9 @@ Conforme o usuário confirma um cálculo (pressiona `=`), a linha atual sobe par
 - **Linha 2**: 7, 8, 9, ×
 - **Linha 3**: 4, 5, 6, −
 - **Linha 4**: 1, 2, 3, +
-- **Linha 5**: 00, 0, ( ), =
+- **Linha 5**: 000, 00, 0, =
 
-Botões numéricos são neutros. Operadores são destacados com cor de acento. O botão `( )` substitui o ponto decimal tradicional.
+Botões numéricos são neutros. Operadores são destacados com cor de acento.
 
 ## Regras do Add2
 
