@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:wevacalc/data/database/app_database.dart';
 import 'package:wevacalc/data/repositories/history_repository.dart';
 import 'package:wevacalc/data/repositories/history_repository_impl.dart';
+import 'package:wevacalc/ui/calculator/calculator_view_model.dart';
 
 final getIt = GetIt.instance;
 
@@ -15,5 +16,8 @@ void setupDependencies() {
     () => HistoryRepositoryImpl(database: getIt<AppDatabase>()),
   );
 
-  // ViewModels serão adicionados nas próximas etapas (3 e 4)
+  // ViewModels
+  getIt.registerFactory<CalculatorViewModel>(
+    () => CalculatorViewModel(historyRepository: getIt<HistoryRepository>()),
+  );
 }

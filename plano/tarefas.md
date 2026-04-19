@@ -128,32 +128,32 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 
 ---
 
-## Etapa 3 — Motor da Calculadora
+## Etapa 3 — Motor da Calculadora ✅
 
 ### Testes PRIMEIRO (TDD Red)
 
-- [ ] Criar `test/unit/domain/add2_engine_test.dart`
+- [x] Criar `test/unit/domain/add2_engine_test.dart`
   - Cenários: dígitos simples, sequência de dígitos, backspace, 00, 000, reset, valores limite
-- [ ] Criar `test/unit/domain/expression_evaluator_test.dart`
+- [x] Criar `test/unit/domain/expression_evaluator_test.dart`
   - Cenários: soma, subtração, multiplicação, divisão, precedência, %, divisão por zero, expressão inválida
-- [ ] Criar `test/unit/utils/formatters/number_formatter_test.dart`
+- [x] Criar `test/unit/utils/formatters/number_formatter_test.dart`
   - Cenários: ponto, vírgula, milhar, sem decimais, negativos
-- [ ] Criar `test/unit/ui/calculator/calculator_view_model_test.dart`
+- [x] Criar `test/unit/ui/calculator/calculator_view_model_test.dart`
   - Cenários: estado inicial, inputDigit, operação, =, C, ⌫, timeline, load more na timeline, prévia resultado, persistência no histórico, carregamento de sessão
 
 ### Implementação (TDD Green)
 
-- [ ] Implementar `Add2Engine` — `lib/domain/add2_engine.dart`
-- [ ] Implementar `ExpressionEvaluator` — `lib/domain/expression_evaluator.dart`
-- [ ] Implementar `NumberFormatter` — `lib/utils/formatters/number_formatter.dart`
-- [ ] Implementar `CalculatorViewModel` — `lib/ui/calculator/calculator_view_model.dart`
+- [x] Implementar `Add2Engine` — `lib/domain/add2_engine.dart`
+- [x] Implementar `ExpressionEvaluator` — `lib/domain/expression_evaluator.dart`
+- [x] Implementar `NumberFormatter` — `lib/utils/formatters/number_formatter.dart`
+- [x] Implementar `CalculatorViewModel` — `lib/ui/calculator/calculator_view_model.dart`
   - Timeline com limite visível e load more
-- [ ] Registrar CalculatorViewModel no GetIt
+- [x] Registrar CalculatorViewModel no GetIt
 
 ### Validação
 
-- [ ] `flutter test` — 100% verde
-- [ ] `flutter analyze` — zero warnings
+- [x] `flutter test` — 100% verde (224 testes)
+- [x] `flutter analyze` — zero warnings
 
 ---
 

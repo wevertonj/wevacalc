@@ -159,7 +159,59 @@ Registro de todas as alterações realizadas no projeto, organizado por etapa.
 
 ---
 
-## [Não iniciado] Etapa 3 — Motor da Calculadora
+## [Concluída] Etapa 3 — Motor da Calculadora
+
+### Add2Engine (`lib/domain/add2_engine.dart`)
+
+- Entrada numérica com 2 casas decimais automáticas (conceito Add2)
+- `inputDigit` — insere dígito com validação (apenas 0-9)
+- `inputDoubleZero` / `inputTripleZero` — atalhos para `00` e `000`
+- `deleteLastDigit` — backspace com reajuste automático
+- `formattedValue` — valor formatado com separador decimal (ex: `12.50`)
+- `doubleValue` / `intValue` — acesso ao valor numérico
+- `setValue` — define valor a partir de centavos inteiros
+- `reset` — limpa estado
+
+### ExpressionEvaluator (`lib/domain/expression_evaluator.dart`)
+
+- Avalia expressões com +, −, ×, ÷ respeitando precedência matemática
+- Suporte a porcentagem (%) com comportamento contextual:
+  - `+` e `−`: porcentagem sobre o valor base (100 + 10% = 110)
+  - `×` e `÷`: conversão direta para fração (200 × 10% = 20)
+- Tratamento de erros: divisão por zero, expressão vazia/inválida, operador trailing
+- Resultado sempre formatado com 2 casas decimais
+
+### NumberFormatter (`lib/utils/formatters/number_formatter.dart`)
+
+- `format(cents, separator)` — formata centavos inteiros com separador configurável (ponto/vírgula)
+- `formatDouble(value, separator)` — formata double com separador configurável
+- Suporte a separador de milhar (ponto para vírgula e vice-versa)
+- Suporte a valores negativos
+
+### CalculatorViewModel (`lib/ui/calculator/calculator_view_model.dart`)
+
+- Gerencia entrada Add2 para o número atual
+- Monta expressão completa (números + operadores)
+- Prévia do resultado em tempo real (`previewResult`)
+- Confirma cálculo (`equals`) e adiciona à timeline + persiste no histórico
+- Timeline com limite de entradas visíveis e `loadMoreTimelineEntries`
+- Carregamento de sessão (`loadSession`) a partir do histórico
+- Encadeamento de operações (resultado anterior como próximo operando)
+- Substituição de operador sem perder o operando
+- Suporte a porcentagem via `applyPercentage`
+
+### Injeção de Dependência
+
+- `CalculatorViewModel` registrado como factory no GetIt
+
+### Testes
+
+- `add2_engine_test.dart` — 39 testes (dígitos, 00, 000, backspace, reset, setValue, doubleValue, isEmpty)
+- `expression_evaluator_test.dart` — 26 testes (operações, precedência, %, erros, formatação)
+- `number_formatter_test.dart` — 18 testes (ponto, vírgula, milhar, negativos, formatDouble)
+- `calculator_view_model_test.dart` — 43 testes (estado inicial, dígitos, operadores, =, C, ⌫, %, timeline, load more, loadSession)
+- **Total novos: 126 testes — Total geral: 224 testes — 100% verde**
+- `flutter analyze` — zero issues
 
 ---
 
