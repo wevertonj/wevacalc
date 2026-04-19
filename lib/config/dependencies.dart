@@ -3,7 +3,11 @@ import 'package:get_it/get_it.dart';
 import 'package:wevacalc/data/database/app_database.dart';
 import 'package:wevacalc/data/repositories/history_repository.dart';
 import 'package:wevacalc/data/repositories/history_repository_impl.dart';
+import 'package:wevacalc/data/repositories/settings_repository.dart';
+import 'package:wevacalc/data/repositories/settings_repository_impl.dart';
 import 'package:wevacalc/ui/calculator/calculator_view_model.dart';
+import 'package:wevacalc/ui/history/history_view_model.dart';
+import 'package:wevacalc/ui/settings/settings_view_model.dart';
 
 final getIt = GetIt.instance;
 
@@ -15,9 +19,18 @@ void setupDependencies() {
   getIt.registerLazySingleton<HistoryRepository>(
     () => HistoryRepositoryImpl(database: getIt<AppDatabase>()),
   );
+  getIt.registerLazySingleton<SettingsRepository>(
+    () => SettingsRepositoryImpl(),
+  );
 
   // ViewModels
   getIt.registerFactory<CalculatorViewModel>(
     () => CalculatorViewModel(historyRepository: getIt<HistoryRepository>()),
+  );
+  getIt.registerFactory<HistoryViewModel>(
+    () => HistoryViewModel(historyRepository: getIt<HistoryRepository>()),
+  );
+  getIt.registerFactory<SettingsViewModel>(
+    () => SettingsViewModel(settingsRepository: getIt<SettingsRepository>()),
   );
 }

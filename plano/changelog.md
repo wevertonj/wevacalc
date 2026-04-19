@@ -215,7 +215,60 @@ Registro de todas as alterações realizadas no projeto, organizado por etapa.
 
 ---
 
-## [Não iniciado] Etapa 4 — Lógica do Histórico e Configurações
+## [Concluída] Etapa 4 — Lógica do Histórico e Configurações
+
+### HistoryViewModel (`lib/ui/history/history_view_model.dart`)
+
+- Carregamento paginado de entradas (20 por página)
+- `loadEntries()` — carrega primeira página e reseta paginação
+- `loadMore()` — carrega próxima página e acrescenta à lista
+- `hasMore` — indica se há mais páginas disponíveis
+- `isLoading` — estado de carregamento para feedback visual
+- `deleteEntry(id)` — deleta entrada individual e remove da lista local
+- `clearAll()` — limpa todo o histórico e reseta paginação
+- `updateName(id, name)` — renomeia entrada localmente e no banco
+- `toggleFavorite(id)` — alterna favorito localmente e no banco
+- `setShowFavoritesOnly(bool)` — alterna filtro e recarrega lista
+- Proteção contra chamadas concorrentes de loadMore
+
+### SettingsRepository (`lib/data/repositories/settings_repository.dart`)
+
+- Interface com métodos get/set para:
+  - `ThemeModeOption` (light, dark, system)
+  - `seedColorIndex` (índice 0-8 das seed colors)
+  - `DecimalSeparator` (dot, comma)
+  - `locale` (String?, nullable)
+
+### SettingsRepositoryImpl (`lib/data/repositories/settings_repository_impl.dart`)
+
+- Implementação com SharedPreferences
+- Valores padrão: system, 0, dot, null
+- `setLocale(null)` remove a chave do SharedPreferences
+
+### SettingsViewModel (`lib/ui/settings/settings_view_model.dart`)
+
+- Gerencia estado reativo de todas as preferências
+- `loadSettings()` — carrega todas as preferências do repository
+- `setThemeMode()`, `setSeedColorIndex()`, `setDecimalSeparator()`, `setLocale()` — atualizam estado e persistem
+- Notifica listeners em cada alteração
+
+### Injeção de Dependência
+
+- `SettingsRepository` registrado como lazy singleton no GetIt
+- `HistoryViewModel` registrado como factory no GetIt
+- `SettingsViewModel` registrado como factory no GetIt
+
+### Mocks
+
+- `MockSettingsRepository` criado em `test/mocks/mock_settings_repository.dart`
+
+### Testes
+
+- `history_view_model_test.dart` — 24 testes (estado inicial, loadEntries, loadMore, hasMore, isLoading, delete, clearAll, updateName, toggleFavorite, setShowFavoritesOnly, paginação de favoritos, notificações)
+- `settings_repository_test.dart` — 11 testes (get/set ThemeMode, seedColorIndex, decimalSeparator, locale com defaults e persistência)
+- `settings_view_model_test.dart` — 18 testes (estado inicial, loadSettings, setThemeMode, setSeedColorIndex, setDecimalSeparator, setLocale, notificações)
+- **Total novos: 53 testes — Total geral: 277 testes — 100% verde**
+- `flutter analyze` — zero issues
 
 ---
 

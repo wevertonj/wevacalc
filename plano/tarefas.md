@@ -157,36 +157,36 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 
 ---
 
-## Etapa 4 — Lógica do Histórico e Configurações
+## Etapa 4 — Lógica do Histórico e Configurações ✅
 
 ### Testes PRIMEIRO (TDD Red)
 
-- [ ] Criar `test/unit/ui/history/history_view_model_test.dart`
+- [x] Criar `test/unit/ui/history/history_view_model_test.dart`
   - Cenários: carregamento paginado, loadMore, hasMore, deleção individual, limpar tudo, rename, toggleFavorite, filtro favoritos, notificações
-- [ ] Criar `test/unit/data/repositories/settings_repository_test.dart`
+- [x] Criar `test/unit/data/repositories/settings_repository_test.dart`
   - Cenários: salvar/carregar ThemeMode, seedColor, decimalSeparator, locale
-- [ ] Criar `test/unit/ui/settings/settings_view_model_test.dart`
+- [x] Criar `test/unit/ui/settings/settings_view_model_test.dart`
   - Cenários: estado inicial, alteração de cada preferência, persistência via repository
 
 ### Implementação (TDD Green)
 
-- [ ] Implementar `HistoryViewModel` — `lib/ui/history/history_view_model.dart`
+- [x] Implementar `HistoryViewModel` — `lib/ui/history/history_view_model.dart`
   - Carregamento paginado (loadMore, hasMore)
   - Deleta, limpa, rename, toggleFavorite
   - Filtro: todos / favoritos
   - Notifica listeners
-- [ ] Implementar `SettingsRepository` (interface) — `lib/data/repositories/settings_repository.dart`
-- [ ] Implementar `SettingsRepositoryImpl` — `lib/data/repositories/settings_repository_impl.dart`
+- [x] Implementar `SettingsRepository` (interface) — `lib/data/repositories/settings_repository.dart`
+- [x] Implementar `SettingsRepositoryImpl` — `lib/data/repositories/settings_repository_impl.dart`
   - SharedPreferences para ThemeMode, seedColor, decimalSeparator, locale
-- [ ] Implementar `SettingsViewModel` — `lib/ui/settings/settings_view_model.dart`
+- [x] Implementar `SettingsViewModel` — `lib/ui/settings/settings_view_model.dart`
   - Gerencia preferências, persiste via repository, notifica listeners
-- [ ] Registrar SettingsRepository, HistoryViewModel e SettingsViewModel no GetIt
+- [x] Registrar SettingsRepository, HistoryViewModel e SettingsViewModel no GetIt
 
 ### Validação
 
-- [ ] `flutter test` — 100% verde
-- [ ] `flutter analyze` — zero warnings
-- [ ] Verificar: nenhum ViewModel importa Flutter (exceto foundation.dart)
+- [x] `flutter test` — 100% verde (277 testes)
+- [x] `flutter analyze` — zero warnings
+- [x] Verificar: nenhum ViewModel importa Flutter (exceto foundation.dart)
 
 ---
 
