@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:wevacalc/config/dependencies.dart';
 import 'package:wevacalc/config/routes.dart';
@@ -9,6 +10,10 @@ import 'package:wevacalc/utils/l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
   setupDependencies();
   await getIt<AppDatabase>().initialize();
   runApp(const WevaCalcApp());
