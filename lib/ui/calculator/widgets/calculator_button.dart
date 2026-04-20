@@ -27,11 +27,12 @@ class CalculatorButton extends StatefulWidget {
 
 class _CalculatorButtonState extends State<CalculatorButton>
     with TickerProviderStateMixin {
-  // LED glow: acende imediatamente e apaga lentamente (~500ms)
+  // LED glow: acende instantaneamente no tap e apaga gradualmente (~600ms)
+  // Simula o efeito "reactive typing" de teclados mecânicos (ex: Logitech MX)
   late final AnimationController _glowController;
   late final Animation<double> _glowAnimation;
 
-  // Background tap: surge suave e desaparece com fade out
+  // Background flash: destaque sutil de superfície que desaparece rápido
   late final AnimationController _bgController;
   late final Animation<double> _bgAnimation;
 
@@ -40,22 +41,25 @@ class _CalculatorButtonState extends State<CalculatorButton>
     super.initState();
     _glowController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
-      value: 1.0,
+      duration: const Duration(milliseconds: 600),
+      value: 1.0, // inicia sem glow (totalmente apagado)
     );
     _glowAnimation = CurvedAnimation(
       parent: _glowController,
-      curve: Curves.easeOutQuart,
+      curve: Curves.easeInCubic,
     );
 
+    // Background: fade-in rápido (40ms) no tap, fade-out suave (200ms) ao soltar
     _bgController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 400),
-      value: 1.0,
+      duration: const Duration(milliseconds: 200),
+      reverseDuration: const Duration(milliseconds: 40),
+      value: 0.0,
     );
     _bgAnimation = CurvedAnimation(
       parent: _bgController,
-      curve: Curves.easeOutQuart,
+      curve: Curves.easeOut,
+      reverseCurve: Curves.easeOut,
     );
   }
 
@@ -67,24 +71,25 @@ class _CalculatorButtonState extends State<CalculatorButton>
   }
 
   void _handleTapDown(TapDownDetails _) {
-    _bgController.value = 0.0;
+    // LED acende instantaneamente — brilho máximo enquanto o dedo toca
     _glowController.value = 0.0;
+    // Background acende com fade-in rápido (~40ms)
+    _bgController.forward();
   }
 
   void _handleTapUp(TapUpDetails _) {
-    _bgController.forward(from: 0.0);
-    _glowController.forward(from: 0.0);
+    // Dedo levantou — inicia o fade out lento do LED e background
+    _glowController.forward();
+    _bgController.reverse();
   }
 
   void _handleTap() {
     widget.onPressed();
-    _bgController.forward(from: 0.0);
-    _glowController.forward(from: 0.0);
   }
 
   void _handleTapCancel() {
-    _bgController.forward();
     _glowController.forward();
+    _bgController.reverse();
   }
 
   Color _baseTextColor(ColorScheme colors) {
@@ -109,8 +114,8 @@ class _CalculatorButtonState extends State<CalculatorButton>
       child: AnimatedBuilder(
         animation: _bgAnimation,
         builder: (context, child) {
-          // bgAnimation: 0 = just tapped (full bg), 1 = fully faded
-          final bgOpacity = (1.0 - _bgAnimation.value) * 0.12;
+          // bgAnimation: 0 = apagado, 1 = aceso (forward=in, reverse=out)
+          final bgOpacity = _bgAnimation.value * 0.12;
 
           return Container(
             width: 72,
@@ -133,15 +138,18 @@ class _CalculatorButtonState extends State<CalculatorButton>
   Widget _buildIconContent(Color baseColor) {
     return AnimatedBuilder(
       animation: _glowAnimation,
-      builder: (context, child) {
-        final glowIntensity = 1.0 - _glowAnimation.value;
-        final color = Color.lerp(
-          baseColor,
-          _glowTarget(baseColor),
-          glowIntensity * 0.7,
-        )!;
+      builder: (context, _) {
+        final intensity = 1.0 - _glowAnimation.value;
+        final color = Color.lerp(baseColor, Colors.white, intensity)!;
 
-        return Icon(widget.icon, color: color, size: AppLayout.spacing.large);
+        return Icon(
+          widget.icon,
+          color: color,
+          size: AppLayout.spacing.large,
+          shadows: intensity > 0.01
+              ? _buildGlowShadows(baseColor, intensity)
+              : null,
+        );
       },
     );
   }
@@ -149,13 +157,9 @@ class _CalculatorButtonState extends State<CalculatorButton>
   Widget _buildTextContent(Color baseColor) {
     return AnimatedBuilder(
       animation: _glowAnimation,
-      builder: (context, child) {
-        final glowIntensity = 1.0 - _glowAnimation.value;
-        final color = Color.lerp(
-          baseColor,
-          _glowTarget(baseColor),
-          glowIntensity * 0.7,
-        )!;
+      builder: (context, _) {
+        final intensity = 1.0 - _glowAnimation.value;
+        final color = Color.lerp(baseColor, Colors.white, intensity)!;
 
         return Text(
           widget.label,
@@ -163,18 +167,27 @@ class _CalculatorButtonState extends State<CalculatorButton>
             color: color,
             fontSize: 26.0,
             fontWeight: FontWeight.w400,
+            shadows: intensity > 0.01
+                ? _buildGlowShadows(baseColor, intensity)
+                : null,
           ),
         );
       },
     );
   }
 
-  /// Cor alvo do LED glow — branco para numéricos, primary mais brilhante para funcionais.
-  Color _glowTarget(Color base) {
-    if (widget.variant == ButtonVariant.functional) {
-      return Colors.white;
-    }
-
-    return Colors.white;
+  /// Cria o halo luminoso do LED — duas camadas de sombra (interna focada +
+  /// externa difusa) que dão a sensação de luz se apagando gradativamente.
+  List<Shadow> _buildGlowShadows(Color baseColor, double intensity) {
+    return [
+      Shadow(
+        color: baseColor.withValues(alpha: intensity * 0.8),
+        blurRadius: 16.0 * intensity,
+      ),
+      Shadow(
+        color: baseColor.withValues(alpha: intensity * 0.4),
+        blurRadius: 32.0 * intensity,
+      ),
+    ];
   }
 }
