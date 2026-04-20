@@ -1,16 +1,23 @@
 import 'package:flutter/foundation.dart';
 
 import 'package:wevacalc/data/repositories/history_repository.dart';
+import 'package:wevacalc/data/repositories/settings_repository.dart';
 import 'package:wevacalc/domain/add2_engine.dart';
 import 'package:wevacalc/domain/entities/calculation.dart';
 import 'package:wevacalc/domain/entities/history_entry.dart';
+import 'package:wevacalc/domain/enums/decimal_separator.dart';
 import 'package:wevacalc/domain/expression_evaluator.dart';
+import 'package:wevacalc/utils/formatters/number_formatter.dart';
 
 class CalculatorViewModel extends ChangeNotifier {
-  CalculatorViewModel({required HistoryRepository historyRepository})
-    : _historyRepository = historyRepository;
+  CalculatorViewModel({
+    required HistoryRepository historyRepository,
+    required SettingsRepository settingsRepository,
+  }) : _historyRepository = historyRepository,
+       _settingsRepository = settingsRepository;
 
   final HistoryRepository _historyRepository;
+  final SettingsRepository _settingsRepository;
   final Add2Engine _add2Engine = Add2Engine();
   final ExpressionEvaluator _evaluator = ExpressionEvaluator();
 
@@ -20,16 +27,43 @@ class CalculatorViewModel extends ChangeNotifier {
   String? _currentOperator;
   bool _isNewInput = true;
   bool _shouldResetOnInput = false;
-  bool _hasPercentage = false;
   int _visibleCount = 20;
+  DecimalSeparator _decimalSeparator = DecimalSeparator.dot;
 
   static const int _loadMoreCount = 20;
 
   int get maxVisibleEntries => _visibleCount;
 
-  String get currentDisplayValue => _add2Engine.formattedValue;
+  DecimalSeparator get decimalSeparator => _decimalSeparator;
+
+  set decimalSeparator(DecimalSeparator value) {
+    if (_decimalSeparator == value) return;
+    _decimalSeparator = value;
+    notifyListeners();
+  }
+
+  Future<void> loadSettings() async {
+    _decimalSeparator = await _settingsRepository.getDecimalSeparator();
+    notifyListeners();
+  }
+
+  String get currentDisplayValue => _formatValue(_add2Engine.formattedValue);
 
   String? get currentOperator => _currentOperator;
+
+  /// Full display text — the entire expression on a single line.
+  /// e.g., "7856.00", "7856.00 ×", "7856.00 × 52.00"
+  String get fullDisplayText {
+    if (expression.isEmpty) {
+      return currentDisplayValue;
+    }
+
+    if (_isNewInput) {
+      return expression;
+    }
+
+    return '$expression $currentDisplayValue';
+  }
 
   String get expression {
     if (_expressionParts.isEmpty) return '';
@@ -37,7 +71,9 @@ class CalculatorViewModel extends ChangeNotifier {
     final buffer = StringBuffer();
     for (final part in _expressionParts) {
       if (buffer.isNotEmpty) buffer.write(' ');
-      buffer.write(part.value);
+      buffer.write(
+        _isOperator(part.value) ? part.value : _formatValue(part.value),
+      );
     }
 
     if (_currentOperator != null) {
@@ -49,14 +85,13 @@ class CalculatorViewModel extends ChangeNotifier {
 
   String? get previewResult {
     if (_expressionParts.isEmpty || _currentOperator == null) return null;
-    if (_add2Engine.isEmpty && _isNewInput) return null;
+    if (_isNewInput) return null;
 
     final fullExpression = _buildFullExpression();
-    if (_hasPercentage) {
-      return _evaluator.evaluate('$fullExpression %');
-    }
+    final rawResult = _evaluator.evaluate(fullExpression);
+    if (rawResult == null) return null;
 
-    return _evaluator.evaluate(fullExpression);
+    return _formatValue(rawResult);
   }
 
   List<Calculation> get timelineEntries => List.unmodifiable(_timelineEntries);
@@ -116,18 +151,11 @@ class CalculatorViewModel extends ChangeNotifier {
     _shouldResetOnInput = false;
 
     if (_currentOperator != null && !_isNewInput && !_add2Engine.isEmpty) {
-      // There's a pending operation — evaluate it first and chain
-      final fullExpression = _buildFullExpression();
-      final exprToEvaluate = _hasPercentage
-          ? '$fullExpression %'
-          : fullExpression;
-      final result = _evaluator.evaluate(exprToEvaluate);
-      if (result != null) {
-        _expressionParts.clear();
-        _expressionParts.add(_ExpressionPart(result));
-        _add2Engine.setValue(_parseToInt(result));
-        _hasPercentage = false;
-      }
+      // Accumulate current value and operator into expression parts
+      _expressionParts.add(_ExpressionPart(_currentOperator!));
+      _expressionParts.add(_ExpressionPart(_add2Engine.formattedValue));
+    } else if (_currentOperator != null && _isNewInput) {
+      // Just replace the operator (no new digits entered)
     } else if (_expressionParts.isEmpty || (_currentOperator == null)) {
       // First operator — save current value
       _expressionParts.clear();
@@ -141,8 +169,32 @@ class CalculatorViewModel extends ChangeNotifier {
 
   void applyPercentage() {
     if (_currentOperator == null || _expressionParts.isEmpty) return;
+    if (_isNewInput) return;
 
-    _hasPercentage = true;
+    final percentValue = _add2Engine.doubleValue;
+
+    // Find the base value (first number in the expression)
+    double? baseValue;
+    for (final part in _expressionParts) {
+      if (!_isOperator(part.value)) {
+        baseValue = double.tryParse(part.value);
+
+        break;
+      }
+    }
+
+    if (baseValue == null) return;
+
+    double resolved;
+    if (_currentOperator == '+' || _currentOperator == '−') {
+      // 100 + 10% → 100 + (100 * 10 / 100) = 100 + 10
+      resolved = baseValue * percentValue / 100.0;
+    } else {
+      // For × and ÷, convert to fraction: 100 × 10% → 100 × 0.10
+      resolved = percentValue / 100.0;
+    }
+
+    _add2Engine.setValue((resolved * 100).round());
     notifyListeners();
   }
 
@@ -151,22 +203,22 @@ class CalculatorViewModel extends ChangeNotifier {
     if (_isNewInput && _add2Engine.isEmpty) return;
 
     final fullExpression = _buildFullExpression();
-    final exprToEvaluate = _hasPercentage
-        ? '$fullExpression %'
-        : fullExpression;
-    final result = _evaluator.evaluate(exprToEvaluate);
+    final result = _evaluator.evaluate(fullExpression);
 
     if (result == null) return;
 
+    final formattedExpression = _formatExpression(fullExpression);
+    final formattedResult = _formatValue(result);
+
     final calculation = Calculation(
-      expression: fullExpression,
-      result: result,
+      expression: formattedExpression,
+      result: formattedResult,
       timestamp: DateTime.now(),
     );
 
     _timelineEntries.add(calculation);
 
-    // Persist to history
+    // Persist to history (raw values for portability)
     _historyRepository.add(
       HistoryEntry(
         expression: fullExpression,
@@ -180,7 +232,6 @@ class CalculatorViewModel extends ChangeNotifier {
     _currentOperator = null;
     _isNewInput = true;
     _shouldResetOnInput = true;
-    _hasPercentage = false;
     _add2Engine.setValue(_parseToInt(result));
 
     notifyListeners();
@@ -192,13 +243,78 @@ class CalculatorViewModel extends ChangeNotifier {
     _currentOperator = null;
     _isNewInput = true;
     _shouldResetOnInput = false;
-    _hasPercentage = false;
+    _timelineEntries.clear();
     notifyListeners();
   }
 
   void backspace() {
-    _add2Engine.deleteLastDigit();
-    notifyListeners();
+    // When a trailing operator is shown but no new digits entered yet,
+    // remove the operator first (e.g., "3.00 + 5.00 +" → "3.00 + 5.00")
+    if (_isNewInput && _currentOperator != null) {
+      _currentOperator = null;
+      _isNewInput = false;
+
+      // Restore engine to the last value in expression parts
+      if (_expressionParts.isNotEmpty) {
+        final lastPart = _expressionParts.removeLast();
+        _add2Engine.setValue(_parseToInt(lastPart.value));
+
+        if (_expressionParts.isNotEmpty) {
+          final operatorPart = _expressionParts.removeLast();
+          _currentOperator = operatorPart.value;
+        }
+      }
+
+      notifyListeners();
+
+      return;
+    }
+
+    if (!_add2Engine.isEmpty) {
+      _add2Engine.deleteLastDigit();
+      notifyListeners();
+
+      return;
+    }
+
+    // Engine is empty — backspace into the expression
+    if (_currentOperator != null) {
+      _currentOperator = null;
+      _isNewInput = false;
+
+      if (_expressionParts.isNotEmpty) {
+        final lastPart = _expressionParts.removeLast();
+        _add2Engine.setValue(_parseToInt(lastPart.value));
+
+        if (_expressionParts.isNotEmpty) {
+          final operatorPart = _expressionParts.removeLast();
+          _currentOperator = operatorPart.value;
+        }
+      }
+
+      notifyListeners();
+
+      return;
+    }
+
+    // No operator, but expression parts exist (e.g., after removing operator)
+    if (_expressionParts.isNotEmpty) {
+      final lastPart = _expressionParts.removeLast();
+
+      // If it's an operator, restore the value before it
+      if (_isOperator(lastPart.value) && _expressionParts.isNotEmpty) {
+        final valuePart = _expressionParts.removeLast();
+        _add2Engine.setValue(_parseToInt(valuePart.value));
+      } else {
+        _add2Engine.setValue(_parseToInt(lastPart.value));
+      }
+
+      notifyListeners();
+    }
+  }
+
+  bool _isOperator(String value) {
+    return value == '+' || value == '−' || value == '×' || value == '÷';
   }
 
   void loadMoreTimelineEntries() {
@@ -212,8 +328,8 @@ class CalculatorViewModel extends ChangeNotifier {
     for (final entry in entries) {
       _timelineEntries.add(
         Calculation(
-          expression: entry.expression,
-          result: entry.result,
+          expression: _formatExpression(entry.expression),
+          result: _formatValue(entry.result),
           timestamp: entry.createdAt,
         ),
       );
@@ -252,6 +368,32 @@ class CalculatorViewModel extends ChangeNotifier {
     if (parsed == null) return 0;
 
     return (parsed * 100).round();
+  }
+
+  /// Formats a plain value (e.g., "12500.00") using the current
+  /// decimal separator and thousands grouping.
+  String _formatValue(String plainValue) {
+    final parsed = double.tryParse(plainValue);
+    if (parsed == null) return plainValue;
+
+    return NumberFormatter.formatDouble(
+      parsed,
+      separator: _decimalSeparator,
+      useThousandsSeparator: true,
+    );
+  }
+
+  /// Formats a full plain expression (e.g., "12500.00 + 3500.00")
+  /// by formatting each numeric token.
+  String _formatExpression(String plainExpression) {
+    final tokens = plainExpression.split(' ');
+    final formatted = tokens.map((token) {
+      if (_isOperator(token)) return token;
+
+      return _formatValue(token);
+    });
+
+    return formatted.join(' ');
   }
 }
 

@@ -324,3 +324,48 @@ Etapa 7 (Polimento)
 | 6 — UI Histórico/Config | Alta | ~10 | ~12 |
 | 7 — Polimento | Baixa | ~2 | ~4 |
 | **Total** | | **~54** | **~68** |
+
+---
+
+## Futuro — Cursor Editável no Display
+
+**Objetivo**: Implementar um cursor navegável no display da calculadora, permitindo ao usuário mover a posição de inserção e editar valores em qualquer ponto da expressão.
+
+**Motivação**: Atualmente a entrada só acontece no final da expressão. Com um cursor editável, o usuário pode corrigir erros no meio do cálculo sem precisar apagar tudo.
+
+**Escopo**:
+
+- **Modelo de posição do cursor**:
+  - `cursorPosition` (int) no CalculatorViewModel indicando o índice de inserção na expressão
+  - Mover cursor para esquerda/direita (botões ou gesto de toque)
+  - Toque direto em um caractere do display posiciona o cursor naquele ponto
+  - Cursor sempre entre caracteres (não sobrepõe)
+
+- **Visual do cursor**:
+  - Barra vertical piscante (blinking) na posição atual, usando Timer (não AnimationController) para não bloquear `pumpAndSettle`
+  - Altura proporcional ao fontSize animado atual
+  - Cor: `colorScheme.primary`
+  - Animação suave ao mover de posição (slide horizontal com `TweenAnimationBuilder`)
+
+- **Integração com AnimatedInputDisplay**:
+  - Novo prop `cursorPosition` (int?) — se null, sem cursor visível
+  - Novo prop `cursorColor` (Color)
+  - O cursor é inserido entre os widgets de caractere na posição indicada
+  - GestureDetector em cada caractere para detectar toque e callback `onCharTap(int index)`
+
+- **Integração com CalculatorViewModel**:
+  - `inputDigit()` insere na `cursorPosition` em vez de sempre no final
+  - `deleteLastDigit()` (backspace) apaga o caractere antes do cursor
+  - `selectOperator()` insere operador na posição do cursor
+  - Após inserção/deleção, cursor avança/recua automaticamente
+  - `moveCursorLeft()` e `moveCursorRight()` com bounds checking
+
+- **UX no keypad**:
+  - Dois novos botões (◀ ▶) ou gesto de swipe horizontal no display para mover o cursor
+  - Alternativa: long-press no display ativa modo de edição com cursor
+
+- **Testes**:
+  - Unitários: ViewModel com cursorPosition (inserção no meio, backspace no meio, mover cursor, bounds)
+  - Widget: AnimatedInputDisplay com cursor visível na posição correta
+  - Widget: Toque em caractere posiciona cursor
+  - Widget: Integração keypad → edição no meio da expressão

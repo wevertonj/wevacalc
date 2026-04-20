@@ -124,6 +124,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Settings'**
   String get settings;
+
+  /// Load more button in timeline
+  ///
+  /// In en, this message translates to:
+  /// **'Load more'**
+  String get loadMore;
+
+  /// Clear button label
+  ///
+  /// In en, this message translates to:
+  /// **'C'**
+  String get clear;
+
+  /// Backspace button accessibility label
+  ///
+  /// In en, this message translates to:
+  /// **'Backspace'**
+  String get backspace;
+
+  /// Equals button label
+  ///
+  /// In en, this message translates to:
+  /// **'='**
+  String get equals;
+
+  /// Percent button label
+  ///
+  /// In en, this message translates to:
+  /// **'%'**
+  String get percent;
 }
 
 class _AppLocalizationsDelegate

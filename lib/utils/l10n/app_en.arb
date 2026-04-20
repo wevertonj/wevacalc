@@ -15,5 +15,25 @@
   "settings": "Settings",
   "@settings": {
     "description": "Settings screen title"
+  },
+  "loadMore": "Load more",
+  "@loadMore": {
+    "description": "Load more button in timeline"
+  },
+  "clear": "C",
+  "@clear": {
+    "description": "Clear button label"
+  },
+  "backspace": "Backspace",
+  "@backspace": {
+    "description": "Backspace button accessibility label"
+  },
+  "equals": "=",
+  "@equals": {
+    "description": "Equals button label"
+  },
+  "percent": "%",
+  "@percent": {
+    "description": "Percent button label"
   }
 }

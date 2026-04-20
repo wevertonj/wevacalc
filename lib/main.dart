@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 
 import 'package:wevacalc/config/dependencies.dart';
 import 'package:wevacalc/config/routes.dart';
+import 'package:wevacalc/data/database/app_database.dart';
 import 'package:wevacalc/config/theme/app_colors.dart';
 import 'package:wevacalc/config/theme/app_theme.dart';
 import 'package:wevacalc/utils/l10n/app_localizations.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   setupDependencies();
+  await getIt<AppDatabase>().initialize();
   runApp(const WevaCalcApp());
 }
 

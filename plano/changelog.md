@@ -272,7 +272,118 @@ Registro de todas as alterações realizadas no projeto, organizado por etapa.
 
 ---
 
-## [Não iniciado] Etapa 5 — UI da Calculadora
+## [Concluída] Etapa 5 — UI da Calculadora
+
+### Design System — Atualização de Cores
+
+- `AppColors` — Paleta de 9 seed colors atualizada:
+  - Blue (#005CEE, padrão), Emerald (#10B981), Orange (#F97316), Cyan (#06B6D4), Pink (#EC4899), Amber (#F59E0B), Rose (#F43F5E), Slate (#94A3B8), Yellow (#F3DE2C)
+- `AppColors` — Cores de superfície customizadas:
+  - Dark: background (#181818), surface (#212121), surfaceContainer (#2D2D2D)
+  - Light: background (#F4F4F5), surface (#FFFFFF), surfaceContainer (#E8E8EA)
+- `AppTheme` — ThemeData claro/escuro com cores de superfície customizadas via `ColorScheme.fromSeed`
+
+### CalculatorButton (`lib/ui/calculator/widgets/calculator_button.dart`)
+
+- Botão circular com 4 variantes: `numeric`, `operator`, `action`, `equals`
+- Efeito de toque: flash instantâneo na cor de fundo (tap down) com retorno suave (80ms)
+- Efeito reactive typing: texto/ícone acende como LED no tap e apaga suavemente (500ms, `Curves.easeOutQuart`)
+- Operadores em cor primary, numéricos em onSurface, ações em onSurface com opacidade, equals com fundo primary
+- `AnimatedContainer` para feedback de fundo, `AnimationController` para glow do texto
+
+### CalculatorKeypad (`lib/ui/calculator/widgets/calculator_keypad.dart`)
+
+- Grid 5×4 com layout: C, %, ⌫, ÷ | 7, 8, 9, × | 4, 5, 6, − | 1, 2, 3, + | 000, 00, 0, =
+- 20 botões `CalculatorButton` com variantes corretas
+- Callbacks separados: `onDigit`, `onOperator`, `onEquals`, `onClear`, `onBackspace`, `onPercent`, `onDoubleZero`, `onTripleZero`
+
+### TimelineDisplay (`lib/ui/calculator/widgets/timeline_display.dart`)
+
+- ListView scrollável com auto-scroll para o final ao atualizar
+- Entradas passadas em cor sutil (onSurface com baixa opacidade)
+- Expressão atual em branco, valor atual em fonte grande (48px, w300)
+- Prévia do resultado em cinza (28px, 35% opacidade)
+- `AnimatedSwitcher` com `switchInCurve: Curves.easeOutQuart` para transições de valor
+- Botão "load more" no topo com fundo surfaceContainerHighest
+
+### CalculatorPage (`lib/ui/calculator/calculator_page.dart`)
+
+- Layout vertical: Timeline (expanded) + barra de ícones + Keypad
+- Barra de ícones: history (⏱) e settings (⚙) — navegação placeholder
+- Integração com `CalculatorViewModel` via `addListener`/`setState`
+
+### Rotas
+
+- Rota `/` conectada ao `CalculatorPage` com ViewModel do GetIt
+
+### Internacionalização
+
+- Novas strings nos 4 ARBs: `loadMore`, `clear`, `backspace`, `equals`, `percent`
+
+### Infraestrutura de Testes
+
+- `test/helpers/pump_app.dart` — Extension `pumpApp` em `WidgetTester` com tema, l10n e dark mode
+
+### Testes
+
+- `calculator_button_test.dart` — 11 testes (renderização de variantes, ícone, interação, cores)
+- `calculator_keypad_test.dart` — 13 testes (todos os botões, callbacks de dígitos/operadores/ações)
+- `timeline_display_test.dart` — 9 testes (expressão, valor, preview, entradas passadas, load more)
+- `calculator_page_test.dart` — 8 testes (renderização, integração teclado→display, =, C, ⌫)
+- **Total novos: 41 testes — Total geral: 318 testes — 100% verde**
+- `flutter analyze` — zero issues
+
+### Extras (fora do plano original)
+
+#### AnimatedInputDisplay (`lib/ui/calculator/widgets/animated_input_display.dart`)
+
+Widget customizado que substituiu o `TextField` padrão no display da calculadora. Renderiza cada caractere individualmente com animações:
+
+- **Pop-in**: Novos caracteres surgem com expansão de largura (0 → target), escala (0.5 → 1) e opacidade (0 → 1) em 250ms com `Curves.easeOutBack`
+- **Rolling digit**: Caracteres que mudam de valor usam transição vertical — antigo sobe e desaparece, novo sobe por baixo — em 200ms com `Curves.easeOutCubic`
+- **Diff algorithm**: `_diffAndBuildSlots()` calcula prefixo/sufixo comum para determinar tipo de animação por caractere (popIn, roll, none)
+- **RichText**: Cada caractere usa `RichText` em vez de `Text` para evitar conflito com `find.text()` nos testes de widget
+- **Operadores coloridos**: +, −, ×, ÷ renderizados na cor primary; dígitos na cor onSurface
+
+#### Animação de redução de fonte
+
+- `TweenAnimationBuilder<double>` no fontSize (200ms, `Curves.easeOutCubic`) — quando a expressão cresce e a fonte reduz (48 → 36 → 28), a transição é suave em vez de instantânea
+
+#### Suporte multiline com token grouping
+
+- Prop `multiline` no `AnimatedInputDisplay` — quando a expressão excede a largura mesmo com a menor fonte (28px), o display usa `Wrap` em vez de scroll horizontal
+- `_groupIntoTokens()`: agrupa caracteres em tokens (números como Row inline) para que o `Wrap` só quebre entre operadores/espaços, nunca no meio de um número como "4.56"
+
+#### Font scaling adaptativo no TimelineDisplay
+
+- `_calculateFontLayout()`: calcula `({double fontSize, bool multiline})` com base na largura disponível
+- Threshold de 88% da largura (`_shrinkThreshold = 0.88`) para disparar redução antes do texto encostar na borda
+- Cascata: 48px → 36px → 28px → multiline
+
+#### Reactive typing no CalculatorButton
+
+- **LED glow effect**: ao pressionar um botão, texto/ícone acende na cor de destaque como um LED e apaga suavemente em 500ms (`Curves.easeOutQuart`) via `AnimationController`
+- **Flash de fundo**: tap down causa flash instantâneo na cor de fundo, com retorno suave em 80ms
+- Esses efeitos não estavam no plano, que previa apenas `AnimatedContainer` para feedback de toque
+
+#### Entry animation no TimelineDisplay
+
+- `SingleTickerProviderStateMixin` com `SlideTransition` + `FadeTransition` para animar a entrada mais recente na timeline (350ms, `Curves.easeOutCubic`)
+- Novas entradas deslizam de baixo e aparecem gradualmente
+
+#### Design System — Paleta de cores atualizada
+
+- `AppColors` reformulado com nova paleta de 9 seed colors: Blue (#005CEE, padrão), Emerald, Orange, Cyan, Pink, Amber, Rose, Slate, Yellow
+- Cores de superfície customizadas para dark (background #181818, surface #212121, surfaceContainer #2D2D2D) e light (background #F4F4F5, surface #FFFFFF, surfaceContainer #E8E8EA)
+- `AppTheme` atualizado para aplicar cores de superfície customizadas no `ColorScheme.fromSeed`
+
+#### Remoção do cursor
+
+- Cursor piscante (`_BlinkingCursor`) removido temporariamente — será reimplementado como cursor editável com navegação por posição (planejado em "Futuro — Cursor Editável no Display" no plano)
+
+#### Infraestrutura de testes
+
+- `test/helpers/pump_app.dart` — Extension `pumpApp` em `WidgetTester` com setup completo (tema, l10n, dark mode) para testes de widget
 
 ---
 

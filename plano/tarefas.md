@@ -190,35 +190,39 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 
 ---
 
-## Etapa 5 — UI da Calculadora
+## Etapa 5 — UI da Calculadora ✅
 
 ### Testes PRIMEIRO (TDD Red)
 
-- [ ] Criar `test/widget/calculator/calculator_button_test.dart`
-- [ ] Criar `test/widget/calculator/calculator_keypad_test.dart`
-- [ ] Criar `test/widget/calculator/timeline_display_test.dart`
-- [ ] Criar `test/widget/calculator/calculator_page_test.dart`
+- [x] Criar `test/widget/calculator/calculator_button_test.dart`
+- [x] Criar `test/widget/calculator/calculator_keypad_test.dart`
+- [x] Criar `test/widget/calculator/timeline_display_test.dart`
+- [x] Criar `test/widget/calculator/calculator_page_test.dart`
 
 ### Implementação (TDD Green)
 
-- [ ] Implementar `CalculatorButton` — `lib/ui/calculator/widgets/calculator_button.dart`
+- [x] Implementar `CalculatorButton` — `lib/ui/calculator/widgets/calculator_button.dart`
   - AnimatedContainer com feedback de toque, variantes (numérico, operador, ação)
-- [ ] Implementar `CalculatorKeypad` — `lib/ui/calculator/widgets/calculator_keypad.dart`
+  - Efeito reactive typing (glow LED 500ms) e flash de fundo (80ms)
+- [x] Implementar `CalculatorKeypad` — `lib/ui/calculator/widgets/calculator_keypad.dart`
   - Grid 5×4 com layout documentado
-- [ ] Implementar `TimelineDisplay` — `lib/ui/calculator/widgets/timeline_display.dart`
+- [x] Implementar `TimelineDisplay` — `lib/ui/calculator/widgets/timeline_display.dart`
   - ListView scrollável, linhas com cores diferenciadas, auto-scroll
   - Botão "load more" no topo para carregar cálculos anteriores da sessão
   - AnimatedSwitcher para prévia de resultado
-- [ ] Implementar `CalculatorPage` — `lib/ui/calculator/calculator_page.dart`
+- [x] Implementar `CalculatorPage` — `lib/ui/calculator/calculator_page.dart`
   - Scaffold com timeline + barra de ícones + keypad
-- [ ] Barra de ícones: ⏱ (histórico) e ⚙ (configurações) — navegação sem destino por enquanto
-- [ ] Atualizar strings nos arquivos ARB (botões, labels, "load more")
+- [x] Barra de ícones: ⏱ (histórico) e ⚙ (configurações) — navegação sem destino por enquanto
+- [x] Atualizar strings nos arquivos ARB (botões, labels, "load more")
+- [x] Atualizar `AppColors` com novas seed colors e cores de superfície
+- [x] Atualizar `AppTheme` com cores de fundo customizadas
+- [x] Conectar rota `/` ao `CalculatorPage` com ViewModel do GetIt
+- [x] Criar `test/helpers/pump_app.dart` — helper de teste para widget tests
 
 ### Validação
 
-- [ ] `flutter test` — 100% verde
-- [ ] `flutter analyze` — zero warnings
-- [ ] Teste manual: app roda e calcula corretamente
+- [x] `flutter test` — 100% verde (318 testes)
+- [x] `flutter analyze` — zero warnings
 
 ---
 

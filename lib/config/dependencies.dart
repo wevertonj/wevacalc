@@ -25,7 +25,10 @@ void setupDependencies() {
 
   // ViewModels
   getIt.registerFactory<CalculatorViewModel>(
-    () => CalculatorViewModel(historyRepository: getIt<HistoryRepository>()),
+    () => CalculatorViewModel(
+      historyRepository: getIt<HistoryRepository>(),
+      settingsRepository: getIt<SettingsRepository>(),
+    ),
   );
   getIt.registerFactory<HistoryViewModel>(
     () => HistoryViewModel(historyRepository: getIt<HistoryRepository>()),

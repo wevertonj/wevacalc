@@ -1,0 +1,132 @@
+import 'package:flutter/material.dart';
+
+import 'package:wevacalc/config/theme/app_layout.dart';
+import 'package:wevacalc/ui/calculator/calculator_view_model.dart';
+import 'package:wevacalc/ui/calculator/widgets/calculator_keypad.dart';
+import 'package:wevacalc/ui/calculator/widgets/timeline_display.dart';
+
+class CalculatorPage extends StatefulWidget {
+  final CalculatorViewModel viewModel;
+
+  const CalculatorPage({super.key, required this.viewModel});
+
+  @override
+  State<CalculatorPage> createState() => _CalculatorPageState();
+}
+
+class _CalculatorPageState extends State<CalculatorPage> {
+  late final TextEditingController _displayController;
+
+  @override
+  void initState() {
+    super.initState();
+    _displayController = TextEditingController(
+      text: widget.viewModel.fullDisplayText,
+    );
+    widget.viewModel.addListener(_onViewModelChanged);
+    widget.viewModel.loadSettings();
+  }
+
+  @override
+  void dispose() {
+    widget.viewModel.removeListener(_onViewModelChanged);
+    _displayController.dispose();
+    super.dispose();
+  }
+
+  void _onViewModelChanged() {
+    final text = widget.viewModel.fullDisplayText;
+    final oldText = _displayController.text;
+    final oldOffset = _displayController.selection.baseOffset;
+
+    if (oldText != text) {
+      // Calculate new cursor position based on the diff
+      final lengthDiff = text.length - oldText.length;
+      final newOffset = (oldOffset + lengthDiff).clamp(0, text.length);
+
+      _displayController.text = text;
+      _displayController.selection = TextSelection.collapsed(offset: newOffset);
+    }
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final vm = widget.viewModel;
+
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: TimelineDisplay(
+                entries: vm.visibleTimelineEntries,
+                displayText: vm.fullDisplayText,
+                previewResult: vm.previewResult,
+                hasMore: vm.hasMoreTimelineEntries,
+                onLoadMore: vm.loadMoreTimelineEntries,
+                displayController: _displayController,
+              ),
+            ),
+            _buildIconBar(colors),
+            Container(
+              color: colors.surfaceContainer,
+              padding: EdgeInsets.only(
+                top: AppLayout.padding.medium,
+                bottom: AppLayout.padding.medium,
+              ),
+              child: CalculatorKeypad(
+                onDigit: vm.inputDigit,
+                onOperator: vm.setOperator,
+                onEquals: vm.equals,
+                onClear: vm.clear,
+                onBackspace: vm.backspace,
+                onPercent: vm.applyPercentage,
+                onDoubleZero: vm.inputDoubleZero,
+                onTripleZero: vm.inputTripleZero,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIconBar(ColorScheme colors) {
+    final iconStyle = IconButton.styleFrom(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppLayout.radius.small),
+      ),
+    );
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: AppLayout.padding.large),
+      child: Row(
+        children: [
+          IconButton(
+            style: iconStyle,
+            icon: Icon(
+              Icons.history_rounded,
+              color: colors.onSurface.withValues(alpha: 0.5),
+            ),
+            onPressed: () {
+              // Navigation will be connected in Etapa 6
+            },
+          ),
+          const Spacer(),
+          IconButton(
+            style: iconStyle,
+            icon: Icon(
+              Icons.settings_rounded,
+              color: colors.onSurface.withValues(alpha: 0.5),
+            ),
+            onPressed: () {
+              // Navigation will be connected in Etapa 6
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}

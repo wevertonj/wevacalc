@@ -19,4 +19,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settings => 'Settings';
+
+  @override
+  String get loadMore => 'Load more';
+
+  @override
+  String get clear => 'C';
+
+  @override
+  String get backspace => 'Backspace';
+
+  @override
+  String get equals => '=';
+
+  @override
+  String get percent => '%';
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:wevacalc/config/theme/app_colors.dart';
+
 /// Gerador de ThemeData claro e escuro usando ColorScheme.fromSeed.
 class AppTheme {
   AppTheme._();
@@ -8,12 +10,15 @@ class AppTheme {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: seedColor,
       brightness: Brightness.light,
+      surface: AppColors.lightBackground,
+      surfaceContainer: AppColors.lightSurfaceContainer,
     );
 
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       colorScheme: colorScheme,
+      scaffoldBackgroundColor: AppColors.lightBackground,
     );
   }
 
@@ -21,12 +26,16 @@ class AppTheme {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: seedColor,
       brightness: Brightness.dark,
+      surface: AppColors.darkBackground,
+      surfaceContainer: AppColors.darkSurface,
+      surfaceContainerHighest: AppColors.darkSurfaceContainer,
     );
 
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: colorScheme,
+      scaffoldBackgroundColor: AppColors.darkBackground,
     );
   }
 }

@@ -3,5 +3,10 @@
   "appTitle": "WevaCalc",
   "calculator": "Calculadora",
   "history": "Historial",
-  "settings": "Configuración"
+  "settings": "Configuración",
+  "loadMore": "Cargar más",
+  "clear": "C",
+  "backspace": "Borrar",
+  "equals": "=",
+  "percent": "%"
 }

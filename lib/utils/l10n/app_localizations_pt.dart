@@ -19,6 +19,21 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get settings => 'Configurações';
+
+  @override
+  String get loadMore => 'Carregar mais';
+
+  @override
+  String get clear => 'C';
+
+  @override
+  String get backspace => 'Apagar';
+
+  @override
+  String get equals => '=';
+
+  @override
+  String get percent => '%';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -36,4 +51,19 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settings => 'Configurações';
+
+  @override
+  String get loadMore => 'Carregar mais';
+
+  @override
+  String get clear => 'C';
+
+  @override
+  String get backspace => 'Apagar';
+
+  @override
+  String get equals => '=';
+
+  @override
+  String get percent => '%';
 }

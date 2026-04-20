@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'package:wevacalc/config/dependencies.dart';
+import 'package:wevacalc/ui/calculator/calculator_page.dart';
+import 'package:wevacalc/ui/calculator/calculator_view_model.dart';
+
 /// Configuração centralizada de rotas do app.
 class AppRoutes {
   AppRoutes._();
@@ -9,9 +13,7 @@ class AppRoutes {
   static const String settings = '/settings';
 
   static Map<String, WidgetBuilder> get routes => {
-    // Rotas serão conectadas às páginas nas Etapas 5 e 6.
-    // Por enquanto, usam placeholders.
-    calculator: (_) => const _PlaceholderPage(title: 'Calculator'),
+    calculator: (_) => CalculatorPage(viewModel: getIt<CalculatorViewModel>()),
     history: (_) => const _PlaceholderPage(title: 'History'),
     settings: (_) => const _PlaceholderPage(title: 'Settings'),
   };
