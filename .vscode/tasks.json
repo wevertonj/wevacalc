@@ -4,7 +4,7 @@
     "label": "Build Android",
     "type": "shell",
     "command": "flutter",
-    "args": ["build", "appbundle", "--release"],
+    "args": ["build", "apk", "--release"],
     "group": {
       "kind": "build",
       "isDefault": true
