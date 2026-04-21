@@ -114,6 +114,37 @@ void main() {
 
         expect(result, '2000.00');
       });
+
+      test('should parse literal % without space in addition', () {
+        final result = evaluator.evaluate('100.00 + 10.00%');
+
+        expect(result, '110.00');
+      });
+
+      test('should parse literal % without space in subtraction', () {
+        final result = evaluator.evaluate('200.00 − 25.00%');
+
+        expect(result, '150.00');
+      });
+
+      test('should parse literal % without space in multiplication', () {
+        final result = evaluator.evaluate('200.00 × 10.00%');
+
+        expect(result, '20.00');
+      });
+
+      test('should parse literal % without space in division', () {
+        final result = evaluator.evaluate('200.00 ÷ 10.00%');
+
+        expect(result, '2000.00');
+      });
+
+      test('should parse multiple literal % tokens in chained expression', () {
+        // 100 + 10% → 110; then + 5% of last operand (10) = 0.5 → 110.5
+        final result = evaluator.evaluate('100.00 + 10.00% + 5.00%');
+
+        expect(result, '110.50');
+      });
     });
 
     group('edge cases', () {

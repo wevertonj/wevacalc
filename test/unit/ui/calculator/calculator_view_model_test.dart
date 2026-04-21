@@ -292,41 +292,84 @@ void main() {
     });
 
     group('percentage', () {
-      test('should resolve percentage in-place for addition', () {
-        // 100.00 + 10% → resolves 10% of 100 = 10.00, display shows 100.00 + 10.00
-        viewModel.inputDigit('1');
-        viewModel.inputDigit('0');
-        viewModel.inputDigit('0');
-        viewModel.inputDigit('0');
-        viewModel.inputDigit('0');
-        viewModel.setOperator('+');
-        viewModel.inputDigit('1');
-        viewModel.inputDigit('0');
-        viewModel.inputDigit('0');
-        viewModel.inputDigit('0');
-        viewModel.applyPercentage();
+      test(
+        'should display literal % in expression for addition without changing current value',
+        () {
+          // 100.00 + 10% → display shows 100.00 + 10.00%, value remains 10.00
+          viewModel.inputDigit('1');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.setOperator('+');
+          viewModel.inputDigit('1');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.applyPercentage();
 
-        // The engine value should now be 10.00 (10% of 100)
-        expect(viewModel.currentDisplayValue, '10.00');
-        expect(viewModel.previewResult, '110.00');
-      });
+          expect(viewModel.currentDisplayValue, '10.00');
+          expect(viewModel.fullDisplayText, '100.00 + 10.00%');
+          expect(viewModel.previewResult, '110.00');
+        },
+      );
 
-      test('should resolve percentage in-place for multiplication', () {
-        // 200.00 × 50% → resolves to 200.00 × 0.50
+      test(
+        'should display literal % in expression for multiplication without changing current value',
+        () {
+          // 200.00 × 50% → display shows 200.00 × 50.00%, value remains 50.00
+          viewModel.inputDigit('2');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.setOperator('×');
+          viewModel.inputDigit('5');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.applyPercentage();
+
+          expect(viewModel.currentDisplayValue, '50.00');
+          expect(viewModel.fullDisplayText, '200.00 × 50.00%');
+          expect(viewModel.previewResult, '100.00');
+        },
+      );
+
+      test('should display literal % for subtraction', () {
+        // 200.00 − 25% = 150.00
         viewModel.inputDigit('2');
         viewModel.inputDigit('0');
         viewModel.inputDigit('0');
         viewModel.inputDigit('0');
         viewModel.inputDigit('0');
-        viewModel.setOperator('×');
+        viewModel.setOperator('−');
+        viewModel.inputDigit('2');
         viewModel.inputDigit('5');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.applyPercentage();
+
+        expect(viewModel.fullDisplayText, '200.00 − 25.00%');
+        expect(viewModel.previewResult, '150.00');
+      });
+
+      test('should display literal % for division', () {
+        // 200.00 ÷ 10% = 2000.00
+        viewModel.inputDigit('2');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.setOperator('÷');
+        viewModel.inputDigit('1');
         viewModel.inputDigit('0');
         viewModel.inputDigit('0');
         viewModel.inputDigit('0');
         viewModel.applyPercentage();
 
-        expect(viewModel.currentDisplayValue, '0.50');
-        expect(viewModel.previewResult, '100.00');
+        expect(viewModel.fullDisplayText, '200.00 ÷ 10.00%');
+        expect(viewModel.previewResult, '2,000.00');
       });
 
       test('should not apply percentage without operator', () {
@@ -338,6 +381,76 @@ void main() {
 
         // Should remain unchanged
         expect(viewModel.currentDisplayValue, '10.00');
+        expect(viewModel.fullDisplayText, '10.00');
+      });
+
+      test(
+        'should preserve % literal in timeline entry expression after equals',
+        () {
+          when(
+            () => mockHistoryRepository.add(any()),
+          ).thenAnswer((_) async => HistoryFixtures.entry1);
+
+          viewModel.inputDigit('1');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.setOperator('+');
+          viewModel.inputDigit('1');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.applyPercentage();
+          viewModel.equals();
+
+          expect(viewModel.timelineEntries, hasLength(1));
+          expect(viewModel.timelineEntries.first.expression, '100.00 + 10.00%');
+          expect(viewModel.timelineEntries.first.result, '110.00');
+        },
+      );
+
+      test('should persist literal % expression to history repository', () {
+        when(
+          () => mockHistoryRepository.add(any()),
+        ).thenAnswer((_) async => HistoryFixtures.entry1);
+
+        viewModel.inputDigit('1');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.setOperator('+');
+        viewModel.inputDigit('1');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.applyPercentage();
+        viewModel.equals();
+
+        final captured = verify(
+          () => mockHistoryRepository.add(captureAny()),
+        ).captured;
+        final entry = captured.single as HistoryEntry;
+        expect(entry.expression, contains('%'));
+      });
+
+      test('should preserve % literal when chaining with another operator', () {
+        // 100 + 10% + 5 → expression should keep "100.00 + 10.00% +"
+        viewModel.inputDigit('1');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.setOperator('+');
+        viewModel.inputDigit('1');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.applyPercentage();
+        viewModel.setOperator('+');
+
+        expect(viewModel.expression, '100.00 + 10.00% +');
       });
     });
 
