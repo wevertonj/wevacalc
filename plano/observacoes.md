@@ -16,7 +16,7 @@ Notas importantes, decisões tomadas e pontos de atenção durante a implementa�
 
 ## Decisões de Arquitetura
 
-### Por que 7 etapas?
+### Por que 11 etapas?
 
 Cada etapa foi dimensionada para caber confortavelmente na janela de contexto de 172k tokens da IA, incluindo:
 
@@ -31,13 +31,18 @@ Cada etapa foi dimensionada para caber confortavelmente na janela de contexto de
 - **Etapa 3** (Motor) depende de 1-2 e implementa o core da calculadora
 - **Etapa 4** (Lógica Histórico/Config) completa todos os ViewModels e repositories — sem UI
 - **Etapa 5** (UI Calculadora) é a primeira tela visual
-- **Etapa 6** (UI Histórico/Config) conecta todas as telas e navegação
-- **Etapa 7** (Polimento) é a revisão final
+- **Etapa 6** (Porcentagem literal) ajusta a exibição do `%` na expressão
+- **Etapa 7** (Fila de toques) elimina perda de toques em digitação rápida
+- **Etapa 8** (Delete contextual + parênteses) reorganiza o keypad
+- **Etapa 9** (UI Histórico/Config) conecta as demais telas e navegação
+- **Etapa 10** (Polimento) é a revisão final
+- **Etapa 11** (Cursor editável) — futuro, não prioritário
 
 ### Divisão Lógica vs UI
 
 - **Etapas 1-4**: Toda a lógica de negócio, dados, ViewModels e infraestrutura — sem nenhuma UI
-- **Etapas 5-7**: Toda a interface visual, integração e polimento
+- **Etapas 5-10**: Toda a interface visual, ajustes de comportamento, integração e polimento
+- **Etapa 11**: Futuro
 - Isso permite que toda a lógica seja testada unitariamente antes de qualquer widget ser criado
 
 ### Dependência de pacotes planejada
@@ -91,6 +96,36 @@ Cada etapa foi dimensionada para caber confortavelmente na janela de contexto de
 - Favoritos aparecem primeiro na listagem (ordenação: favoritos primeiro, depois por data DESC)
 - Filtro: Todos / Apenas favoritos
 - Esses campos impactam a entity `HistoryEntry`, o model, o schema SQLite e o repository
+
+### Porcentagem literal na expressão (Etapa 6)
+
+- O `%` deve aparecer **literalmente** na expressão exibida (ex: `1000.00 + 10.00%`)
+- A prévia e o resultado final continuam numéricos (ex: `1100.00`)
+- O `ExpressionEvaluator` já resolve `%` corretamente — a mudança é apenas na construção da string da expressão no `CalculatorViewModel`
+- O histórico persiste a expressão literal com `%`, mantendo `loadSession` compatível
+
+### Fila de toques (Etapa 7)
+
+- Toques nunca devem ser descartados — cada toque é enfileirado e processado em ordem
+- Animações de feedback (flash de fundo, glow LED) são **independentes** do despacho da ação
+- Despachar a ação no `onTapDown` ou no callback do `Listener`, sem aguardar a animação
+- Evitar `IgnorePointer` durante animações e `GestureDetector` reconstruído a cada frame
+- Sem `debounce`/`throttle` que descarte eventos
+
+### Parênteses inteligentes (Etapa 8)
+
+- Botão `( )` único que decide entre abrir e fechar com base no contexto:
+  - Sem parêntese aberto pendente → abre `(`
+  - Com parêntese aberto e último token sendo número/`%`/`)` → fecha `)`
+  - Após operador → abre novo `(`
+- `ExpressionEvaluator` precisa suportar aninhamento ilimitado respeitando precedência
+- Definir comportamento ao pressionar `=` com parênteses não fechados (auto-fechar ou bloquear)
+
+### Botão `C` contextual (Etapa 8)
+
+- Cor padrão (ação) quando não há conteúdo para apagar
+- Cor `primary` (mesma dos operadores) quando há conteúdo
+- Transição de cor **animada** — nunca mudança "seca"
 
 ### ViewModels sem Flutter
 

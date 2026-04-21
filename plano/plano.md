@@ -2,7 +2,7 @@
 
 ## Resumo
 
-O projeto está dividido em **8 etapas** sequenciais. As **etapas 1-4** cobrem toda a lógica de negócio, dados e infraestrutura (sem UI). As **etapas 5-8** cobrem toda a interface visual, integração e polimento. Cada etapa cabe na janela de contexto de 172k tokens. Todas seguem o fluxo TDD obrigatório (Red → Green → Refactor).
+O projeto está dividido em **11 etapas** sequenciais. As **etapas 1-4** cobrem toda a lógica de negócio, dados e infraestrutura (sem UI). As **etapas 5-8** cobrem a UI da calculadora e ajustes de comportamento (porcentagem, fila de toques e parênteses + delete). As **etapas 9-10** cobrem demais telas, integração e polimento. A **etapa 11** é um item futuro (cursor editável no display). Cada etapa cabe na janela de contexto de 172k tokens. Todas seguem o fluxo TDD obrigatório (Red → Green → Refactor).
 
 ---
 
@@ -194,7 +194,120 @@ O projeto está dividido em **8 etapas** sequenciais. As **etapas 1-4** cobrem t
 
 ---
 
-## Etapa 6 — UI do Histórico e Configurações
+## Etapa 6 — Exibição literal da porcentagem
+
+**Objetivo**: Alterar a forma como a porcentagem é exibida sem alterar o resultado matemático. O `%` passa a aparecer literalmente na expressão (e na timeline), enquanto a prévia e o resultado final continuam refletindo o cálculo já existente.
+
+**Escopo**:
+
+- **CalculatorViewModel**:
+  - A expressão exibida (`expression`) preserva o token `%` junto ao número (ex: `1000.00 + 10.00%`)
+  - A prévia (`previewResult`) continua resolvendo o `%` normalmente (ex: `1100.00`)
+  - O resultado final ao pressionar `=` mantém o comportamento atual (cálculo correto)
+  - Garantir que a entrada `Add2` continue funcionando após o `%` (ex: começar novo número/operador depois)
+  - O `%` aplicado pela ação dedicada (`applyPercentage`) deve produzir o token literal na expressão, não substituir o número
+- **ExpressionEvaluator**:
+  - Continuar avaliando `%` com o comportamento contextual já existente
+  - Garantir que a expressão com `%` literal seja parseável tanto para a prévia quanto para o cálculo final
+- **TimelineDisplay**:
+  - Linhas anteriores e atual exibem o `%` literal
+  - Prévia (linha em cinza) exibe apenas o resultado numérico
+- **Histórico**: A entrada persistida deve guardar a expressão literal com `%`, mantendo compatibilidade com o carregamento de sessão
+
+**Testes**:
+
+- Unitários: `CalculatorViewModel` — `expression` mantém `%` literal, `previewResult` calcula corretamente, `=` produz o mesmo resultado de antes
+- Unitários: `ExpressionEvaluator` — parsing de expressões com `%` literal em diferentes contextos (`+`, `−`, `×`, `÷`)
+- Widget: `TimelineDisplay` exibe `%` literal na expressão e resultado calculado na prévia
+- Regressão: nenhum teste existente da Etapa 3/5 deve quebrar
+
+**Entregável**: Porcentagem exibida literalmente na expressão e timeline, com prévia e resultado matematicamente corretos.
+
+---
+
+## Etapa 7 — Fila de processamento de toques (anti-perda em digitação rápida)
+
+**Objetivo**: Garantir que **todo** toque em qualquer botão da calculadora seja processado em ordem, mesmo durante animações ou rebuilds reativos. Eliminar perda de toques ao digitar muito rápido.
+
+**Escopo**:
+
+- **Diagnóstico**:
+  - Auditar o pipeline de toque do `CalculatorButton` → `CalculatorKeypad` → `CalculatorViewModel`
+  - Identificar pontos onde `setState`/`AnimatedContainer`/`AnimationController` podem descartar gestos (ex: `GestureDetector` reconstruído, `IgnorePointer` durante animação)
+- **Solução — Queue de eventos**:
+  - Criar uma fila (`Queue<CalculatorAction>`) no `CalculatorViewModel` (ou em um `InputDispatcher` dedicado registrado no GetIt)
+  - Cada toque é enfileirado imediatamente (sem await) e processado sequencialmente em um loop assíncrono (microtask)
+  - O processamento atualiza estado e dispara animações; nenhum toque é descartado por estar "em animação"
+  - Garantir thread-safety lógica (Dart é single-threaded, mas evitar reentrância)
+- **CalculatorButton**:
+  - Usar `Listener` ou `GestureDetector` com `behavior: HitTestBehavior.opaque`
+  - O callback de toque despacha imediatamente a ação para a fila — não aguarda animação
+  - Animações de feedback (flash, glow LED) são puramente visuais e independentes do despacho
+- **Métrica/Validação**:
+  - Teste de stress: simular N toques em rajada e verificar que todos foram processados na ordem correta
+  - Sem `debounce`/`throttle` que descarte eventos
+
+**Testes**:
+
+- Unitários: `CalculatorViewModel` — enfileirar 50 ações em rajada e validar a ordem e o estado final
+- Widget: `CalculatorKeypad` — `tester.tap` em rajada (sem `pumpAndSettle` entre toques) reflete todos os dígitos
+- Widget: `CalculatorButton` permanece responsivo durante a animação de feedback (toque novo durante glow ainda é registrado)
+- Regressão: testes da Etapa 5 continuam verdes
+
+**Entregável**: Digitação rápida nunca perde toques; toda ação é processada em ordem, animações continuam fluidas.
+
+---
+
+## Etapa 8 — Reorganização do keypad: delete contextual e parênteses
+
+**Objetivo**: Reorganizar a primeira linha do keypad: mover ⚙ (configurações) para junto de ⏱ (histórico), substituir o slot antigo do ⚙ por um botão de **apagar tudo** (com cor contextual), e substituir o backspace (⌫) por um botão de **parênteses `( )`** com abertura/fechamento automáticos.
+
+**Escopo**:
+
+- **Barra de ícones (acima do keypad)**:
+  - Agora contém ⏱ (histórico) e ⚙ (configurações), lado a lado
+- **Keypad — Botão Apagar (`C`)**:
+  - Ocupa o slot onde estava ⚙
+  - Apaga toda a expressão e a entrada atual (clear total)
+  - **Cor contextual**:
+    - Sem nada para apagar (expressão vazia e entrada zerada): cor padrão dos ícones de ação
+    - Com qualquer conteúdo: cor `primary` (mesma cor da fonte dos operadores)
+  - Transição animada de cor (`AnimatedDefaultTextStyle` ou `AnimatedSwitcher`) — sem mudança "seca"
+- **Keypad — Botão Parênteses `()`**:
+  - Ocupa o slot onde estava `⌫`
+  - Comportamento inteligente (toggle automático):
+    - Se não há parêntese aberto pendente → insere `(`
+    - Se há parêntese aberto pendente E o último token permite fechamento (número, `%`, `)`) → insere `)`
+    - Caso contrário (após operador), insere novo `(`
+  - Permite expressões aninhadas: `(10.00 × 50.00) + 30.00 + (48.00 ÷ (18.00 × 1.50%))`
+- **CalculatorViewModel**:
+  - Novo método `inputParenthesis()` com a lógica de toggle
+  - Estado derivado `hasContent` (bool) para colorir o botão `C`
+  - Contador de parênteses abertos (`openParenCount`) para guiar o toggle
+  - Validação ao confirmar (`=`): se houver parênteses não fechados, fechar automaticamente antes de avaliar (ou bloquear com feedback — definir na implementação)
+- **ExpressionEvaluator**:
+  - Suporte completo a parênteses com aninhamento ilimitado, respeitando precedência
+  - Tratamento de erros: parênteses desbalanceados, parênteses vazios `()`
+- **NumberFormatter / TimelineDisplay**:
+  - Renderização correta dos parênteses na expressão e no histórico
+- **Acessibilidade / l10n**:
+  - Labels via `context.l10n.*` para os novos botões (`clearAll`, `parenthesis`)
+
+**Testes**:
+
+- Unitários: `ExpressionEvaluator` — expressões com parênteses simples, aninhados, com `%`, com erro de balanceamento
+- Unitários: `CalculatorViewModel` — `inputParenthesis` em diferentes estados, contador de abertos, `hasContent` reativo, `clearAll`
+- Widget: `CalculatorKeypad` — novo layout (⚙ removido do keypad, `C` no lugar, `( )` no lugar do `⌫`)
+- Widget: Botão `C` muda de cor conforme `hasContent` (com animação)
+- Widget: Botão `( )` insere `(` ou `)` conforme contexto
+- Widget: Barra de ícones contém ⏱ e ⚙ lado a lado
+- Regressão: testes anteriores continuam verdes
+
+**Entregável**: Keypad reorganizado com botão de apagar contextual e parênteses funcionais (incluindo aninhamento), barra de ícones com ⏱ + ⚙.
+
+---
+
+## Etapa 9 — UI do Histórico e Configurações
 
 **Objetivo**: Construir as telas de histórico e configurações, conectar toda a navegação e integrar com a calculadora.
 
@@ -243,7 +356,7 @@ O projeto está dividido em **8 etapas** sequenciais. As **etapas 1-4** cobrem t
 
 ---
 
-## Etapa 7 — Polimento, Integração e Revisão Final
+## Etapa 10 — Polimento, Integração e Revisão Final
 
 **Objetivo**: Refinamento de animações, transições entre telas, revisão geral de qualidade e documentação.
 
@@ -298,10 +411,22 @@ Etapa 4 (Lógica Histórico/Config)     ← Toda lógica pronta
 Etapa 5 (UI Calculadora)
     │
     ▼
-Etapa 6 (UI Histórico/Config)
+Etapa 6 (Porcentagem literal)
     │
     ▼
-Etapa 7 (Polimento)
+Etapa 7 (Fila de toques)
+    │
+    ▼
+Etapa 8 (Delete contextual + parênteses)
+    │
+    ▼
+Etapa 9 (UI Histórico/Config)
+    │
+    ▼
+Etapa 10 (Polimento)
+    │
+    ▼
+Etapa 11 (Futuro — Cursor editável)
 ```
 
 ## Resumo da Divisão
@@ -309,7 +434,8 @@ Etapa 7 (Polimento)
 | Foco | Etapas |
 |------|--------|
 | **Lógica e Dados** | 1, 2, 2.1, 3, 4 |
-| **Interface Visual** | 5, 6, 7 |
+| **Interface Visual e Comportamento** | 5, 6, 7, 8, 9, 10 |
+| **Futuro** | 11 |
 
 ## Estimativa de Complexidade por Etapa
 
@@ -321,13 +447,17 @@ Etapa 7 (Polimento)
 | 3 — Motor Calculadora | Alta | ~6 | ~12 |
 | 4 — Lógica Histórico/Config | Média | ~6 | ~8 |
 | 5 — UI Calculadora | Alta | ~8 | ~8 |
-| 6 — UI Histórico/Config | Alta | ~10 | ~12 |
-| 7 — Polimento | Baixa | ~2 | ~4 |
-| **Total** | | **~54** | **~68** |
+| 6 — Porcentagem literal | Baixa | ~0 (edições) | ~6 |
+| 7 — Fila de toques | Média | ~1-2 | ~6 |
+| 8 — Delete contextual + parênteses | Média-Alta | ~0-1 (edições) | ~10 |
+| 9 — UI Histórico/Config | Alta | ~10 | ~12 |
+| 10 — Polimento | Baixa | ~2 | ~4 |
+| 11 — Futuro: Cursor editável | Média-Alta | ~2-3 | ~8 |
+| **Total** | | **~57-60** | **~92** |
 
 ---
 
-## Futuro — Cursor Editável no Display
+## Etapa 11 — Futuro: Cursor Editável no Display
 
 **Objetivo**: Implementar um cursor navegável no display da calculadora, permitindo ao usuário mover a posição de inserção e editar valores em qualquer ponto da expressão.
 

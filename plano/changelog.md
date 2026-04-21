@@ -272,6 +272,40 @@ Registro de todas as alterações realizadas no projeto, organizado por etapa.
 
 ---
 
+## [Concluída] Etapa 6 — Exibição literal da porcentagem
+
+### CalculatorViewModel
+
+- Novo flag interno `_currentIsPercentage` indica que o operando atual está marcado como porcentagem literal
+- `applyPercentage()` agora **não modifica** o valor do `Add2Engine` — apenas ativa o flag de porcentagem
+  - Pré-condições: existe operador, há valor digitado, ainda não foi aplicado `%`
+- `setOperator()` ao acumular o operando atual, anexa o sufixo `%` quando o flag está ativo
+- `inputDigit/inputDoubleZero/inputTripleZero` (refatorados para `_prepareForDigitInput`): digitar após `%` cancela o flag e inicia novo valor para o mesmo operando
+- `backspace()` remove primeiro o flag `%` (se ativo); ao restaurar partes anteriores, detecta sufixo `%` e reativa o flag
+- `equals()`, `clear()` e `loadSession()` resetam o flag de porcentagem
+- `_buildFullExpression()` anexa `%` ao valor atual quando flag ativo (para o evaluator)
+- `_formatExpression()` e novo helper `_formatPart()` preservam o sufixo `%` literal ao formatar tokens (ex: `100.00 + 10.00%`)
+- `fullDisplayText` exibe `%` literal grudado ao valor atual quando aplicável
+
+### ExpressionEvaluator
+
+- Sem alterações de código — o tokenizer já separava o caractere `%` automaticamente, então `10.00%` (sem espaço) é tokenizado igual a `10.00 %`
+- Comportamento contextual de porcentagem mantido: `+/−` calcula percentual sobre o operando anterior; `×/÷` converte para fração
+
+### Histórico
+
+- A expressão persistida em `HistoryEntry` preserva o `%` literal (ex: `100.00 + 10.00%`)
+- `loadSession` formata corretamente expressões persistidas com `%`
+
+### Testes
+
+- `calculator_view_model_test.dart` — grupo `percentage` reescrito com 8 testes (display literal em +, −, ×, ÷; sem operador; persistência no timeline; persistência no repository; encadeamento)
+- `expression_evaluator_test.dart` — grupo `percentage` ampliado com 5 testes adicionais para `%` literal sem espaço (+, −, ×, ÷, encadeado)
+- **Total novos: 13 testes — Total geral: 349 testes — 100% verde**
+- `flutter analyze` — zero issues
+
+---
+
 ## [Concluída] Etapa 5 — UI da Calculadora
 
 ### Design System — Atualização de Cores
@@ -387,8 +421,24 @@ Widget customizado que substituiu o `TextField` padrão no display da calculador
 
 ---
 
-## [Não iniciado] Etapa 6 — UI do Histórico e Configurações
+## [Não iniciado] Etapa 6 — Exibição literal da porcentagem
 
 ---
 
-## [Não iniciado] Etapa 7 — Polimento, Integração e Revisão Final
+## [Não iniciado] Etapa 7 — Fila de processamento de toques (anti-perda em digitação rápida)
+
+---
+
+## [Não iniciado] Etapa 8 — Reorganização do keypad: delete contextual e parênteses
+
+---
+
+## [Não iniciado] Etapa 9 — UI do Histórico e Configurações
+
+---
+
+## [Não iniciado] Etapa 10 — Polimento, Integração e Revisão Final
+
+---
+
+## [Não iniciado] Etapa 11 — Futuro: Cursor Editável no Display
