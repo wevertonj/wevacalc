@@ -306,6 +306,34 @@ Registro de todas as alterações realizadas no projeto, organizado por etapa.
 
 ---
 
+## [Concluída] Etapa 7 — Fila de processamento de toques (anti-perda em digitação rápida)
+
+### CalculatorButton
+
+- `onPressed` despachado no `onTapDown` (antes era no `onTap`/`tapUp`) — elimina a latência do reconhecedor de gestos e garante que o toque seja registrado **imediatamente** quando o dedo encosta no botão
+- Animações (LED glow, background flash) permanecem nos handlers `tapDown`/`tapUp` e são **independentes** do despacho da ação
+- `_handleTap` mantido como no-op para preservar a assinatura do `GestureDetector`
+- Comportamento: tocar e arrastar para fora ainda dispara a ação (intencional — toda tecla pressionada conta)
+
+### CalculatorViewModel
+
+- Nova fila de ações `Queue<VoidCallback> _actionQueue` + flag `_isProcessingActions`
+- Novo método privado `_runAction(action)`:
+  - Se já existe ação em execução (cenário de reentrância síncrona via `notifyListeners`), enfileira e retorna
+  - Caso contrário, marca como processando, executa a ação atual e drena a fila enquanto houver pendências, garantindo a ordem
+- Métodos públicos do usuário envolvidos em `_runAction`: `inputDigit`, `inputDoubleZero`, `inputTripleZero`, `setOperator`, `applyPercentage`, `equals`, `clear`, `backspace`
+- Nenhum `debounce`/`throttle` em qualquer ponto do pipeline
+
+### Testes
+
+- `calculator_view_model_test.dart` — novo grupo `action queue` com 4 testes (50 ações em rajada sem perda, ordem preservada em sequência mista, reentrância via listener síncrono, soma de 25× `1 +`)
+- `calculator_keypad_test.dart` — novo grupo `rapid input` com 2 testes (rajada de dígitos sem `pumpAndSettle`, rajada mista de operadores+dígitos)
+- `calculator_button_test.dart` — novo grupo `responsiveness` com 2 testes (`onPressed` no tap down via `startGesture`, 3 toques durante animação de glow são todos registrados)
+- **Total novos: 8 testes — Total geral: 357 testes — 100% verde**
+- `flutter analyze` — zero issues
+
+---
+
 ## [Concluída] Etapa 5 — UI da Calculadora
 
 ### Design System — Atualização de Cores

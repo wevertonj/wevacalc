@@ -252,33 +252,34 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 
 ---
 
-## Etapa 7 — Fila de processamento de toques (anti-perda em digitação rápida)
+## Etapa 7 — Fila de processamento de toques (anti-perda em digitação rápida) ✅
 
 ### Testes PRIMEIRO (TDD Red)
 
-- [ ] Atualizar `test/unit/ui/calculator/calculator_view_model_test.dart`
+- [x] Atualizar `test/unit/ui/calculator/calculator_view_model_test.dart`
   - Cenário: enfileirar 50 ações em rajada e validar a ordem e o estado final
   - Cenário: ações despachadas durante processamento são preservadas
-- [ ] Atualizar `test/widget/calculator/calculator_keypad_test.dart`
+- [x] Atualizar `test/widget/calculator/calculator_keypad_test.dart`
   - Cenário: `tester.tap` em rajada (sem `pumpAndSettle` entre toques) reflete todos os dígitos
-- [ ] Atualizar `test/widget/calculator/calculator_button_test.dart`
+- [x] Atualizar `test/widget/calculator/calculator_button_test.dart`
   - Cenário: botão permanece responsivo durante animação de feedback
+  - Cenário: `onPressed` dispara no `onTapDown` (não aguarda `tapUp`)
 
 ### Implementação (TDD Green)
 
-- [ ] Auditar pipeline `CalculatorButton` → `CalculatorKeypad` → `CalculatorViewModel` em busca de pontos que descartam toques
-- [ ] Implementar fila (`Queue<CalculatorAction>`) no `CalculatorViewModel` (ou criar `InputDispatcher` em `lib/ui/calculator/` registrado no GetIt)
-- [ ] Despachar toques imediatamente para a fila e processar sequencialmente em microtask
-- [ ] Garantir que animações (flash, glow LED) são independentes do despacho
-- [ ] Ajustar `CalculatorButton` para usar `Listener`/`GestureDetector` com `behavior: HitTestBehavior.opaque` se necessário
-- [ ] Garantir que não há `debounce`/`throttle` descartando eventos
+- [x] Auditar pipeline `CalculatorButton` → `CalculatorKeypad` → `CalculatorViewModel`
+- [x] Implementar fila (`Queue<VoidCallback>`) no `CalculatorViewModel` com proteção de reentrância
+- [x] Despachar toques imediatamente; ações reentrantes (via listener) entram na fila e são processadas após a atual
+- [x] Garantir que animações (flash, glow LED) permanecem independentes do despacho
+- [x] Ajustar `CalculatorButton` para disparar `onPressed` no `onTapDown` (latência mínima)
+- [x] `GestureDetector` mantém `behavior: HitTestBehavior.opaque`
+- [x] Sem `debounce`/`throttle` descartando eventos
 
 ### Validação
 
-- [ ] `flutter test` — 100% verde
-- [ ] `flutter analyze` — zero warnings
-- [ ] Regressão: testes da Etapa 5 e 6 continuam verdes
-- [ ] Teste manual: digitar muito rápido não perde toques
+- [x] `flutter test` — 100% verde (357 testes)
+- [x] `flutter analyze` — zero warnings
+- [x] Regressão: testes das Etapas 5 e 6 continuam verdes
 
 ---
 

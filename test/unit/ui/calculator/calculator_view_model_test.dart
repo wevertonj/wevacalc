@@ -913,5 +913,85 @@ void main() {
         expect(viewModel.previewResult, '100,000.00');
       });
     });
+
+    group('action queue', () {
+      test('should process 50 rapid actions without dropping any', () {
+        // Arrange — count notifications to verify all actions were processed.
+        var notifications = 0;
+        viewModel.addListener(() => notifications++);
+
+        // Act — fire 50 actions in burst (digit/operator alternated to avoid
+        // Add2Engine integer overflow with a single huge number).
+        for (var i = 0; i < 25; i++) {
+          viewModel.inputDigit('1');
+          viewModel.setOperator('+');
+        }
+
+        // Assert — every action triggered a notification (no drops).
+        expect(notifications, 50);
+      });
+
+      test('should preserve order across mixed actions in burst', () {
+        // Arrange
+        when(
+          () => mockHistoryRepository.add(any()),
+        ).thenAnswer((_) async => HistoryFixtures.entry1);
+
+        // Act — simulate user typing "12 + 34 ="
+        viewModel.inputDigit('1');
+        viewModel.inputDigit('2');
+        viewModel.setOperator('+');
+        viewModel.inputDigit('3');
+        viewModel.inputDigit('4');
+        viewModel.equals();
+
+        // Assert — final result must reflect the ordered processing
+        expect(viewModel.timelineEntries, hasLength(1));
+        expect(viewModel.timelineEntries.first.expression, '0.12 + 0.34');
+        expect(viewModel.timelineEntries.first.result, '0.46');
+      });
+
+      test(
+        'should enqueue actions triggered during processing (reentrancy)',
+        () {
+          // Arrange — listener that re-dispatches an action while the current
+          // one is still being processed (synchronous notifyListeners).
+          var fired = false;
+          viewModel.addListener(() {
+            if (!fired) {
+              fired = true;
+              viewModel.inputDigit('9');
+            }
+          });
+
+          // Act
+          viewModel.inputDigit('5');
+
+          // Assert — both digits processed in order: '5' then '9'
+          expect(viewModel.currentDisplayValue, '0.59');
+        },
+      );
+
+      test(
+        'should not drop actions when 50 operators+digits fire in burst',
+        () {
+          // Arrange
+          when(
+            () => mockHistoryRepository.add(any()),
+          ).thenAnswer((_) async => HistoryFixtures.entry1);
+
+          // Act — 1 + 1 + 1 + ... 25 times => result should be 0.25
+          for (var i = 0; i < 25; i++) {
+            viewModel.inputDigit('1');
+            if (i < 24) viewModel.setOperator('+');
+          }
+          viewModel.equals();
+
+          // Assert — exactly one timeline entry; sum is 25 * 0.01 = 0.25
+          expect(viewModel.timelineEntries, hasLength(1));
+          expect(viewModel.timelineEntries.first.result, '0.25');
+        },
+      );
+    });
   });
 }

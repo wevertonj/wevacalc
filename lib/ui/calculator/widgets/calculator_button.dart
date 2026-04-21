@@ -71,6 +71,10 @@ class _CalculatorButtonState extends State<CalculatorButton>
   }
 
   void _handleTapDown(TapDownDetails _) {
+    // Despacha a ação IMEDIATAMENTE no toque — sem aguardar tapUp ou
+    // animações. Garante que nenhum toque seja perdido em digitação rápida.
+    widget.onPressed();
+
     // LED acende instantaneamente — brilho máximo enquanto o dedo toca
     _glowController.value = 0.0;
     // Background acende com fade-in rápido (~40ms)
@@ -84,7 +88,7 @@ class _CalculatorButtonState extends State<CalculatorButton>
   }
 
   void _handleTap() {
-    widget.onPressed();
+    // A ação já foi despachada no tapDown; aqui não fazemos nada.
   }
 
   void _handleTapCancel() {

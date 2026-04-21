@@ -330,5 +330,71 @@ void main() {
         expect(tripleZeroCalled, isTrue);
       });
     });
+
+    group('rapid input', () {
+      testWidgets('should dispatch every digit in a rapid burst', (
+        tester,
+      ) async {
+        final tappedDigits = <String>[];
+
+        await tester.pumpApp(
+          Scaffold(
+            body: CalculatorKeypad(
+              onDigit: tappedDigits.add,
+              onOperator: (_) {},
+              onEquals: () {},
+              onClear: () {},
+              onBackspace: () {},
+              onPercent: () {},
+              onDoubleZero: () {},
+              onTripleZero: () {},
+            ),
+          ),
+        );
+
+        // Tap a sequence of digits in rapid succession with no
+        // pumpAndSettle between taps — animations are still running.
+        const sequence = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+        for (final d in sequence) {
+          await tester.tap(find.text(d));
+          await tester.pump(const Duration(milliseconds: 8));
+        }
+        await tester.pumpAndSettle();
+
+        expect(tappedDigits, sequence);
+      });
+
+      testWidgets('should dispatch operators and digits in mixed burst', (
+        tester,
+      ) async {
+        final tapped = <String>[];
+
+        await tester.pumpApp(
+          Scaffold(
+            body: CalculatorKeypad(
+              onDigit: (d) => tapped.add('d:$d'),
+              onOperator: (op) => tapped.add('o:$op'),
+              onEquals: () => tapped.add('='),
+              onClear: () {},
+              onBackspace: () {},
+              onPercent: () {},
+              onDoubleZero: () {},
+              onTripleZero: () {},
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('1'));
+        await tester.pump(const Duration(milliseconds: 5));
+        await tester.tap(find.text('+'));
+        await tester.pump(const Duration(milliseconds: 5));
+        await tester.tap(find.text('2'));
+        await tester.pump(const Duration(milliseconds: 5));
+        await tester.tap(find.text('='));
+        await tester.pumpAndSettle();
+
+        expect(tapped, ['d:1', 'o:+', 'd:2', '=']);
+      });
+    });
   });
 }

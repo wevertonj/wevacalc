@@ -188,5 +188,57 @@ void main() {
         expect(decoration.shape, BoxShape.rectangle);
       });
     });
+
+    group('responsiveness', () {
+      testWidgets('should fire onPressed on tap down (not wait for tap up)', (
+        tester,
+      ) async {
+        var pressed = false;
+
+        await tester.pumpApp(
+          Scaffold(
+            body: CalculatorButton(label: '4', onPressed: () => pressed = true),
+          ),
+        );
+
+        // Press without releasing yet
+        final gesture = await tester.startGesture(
+          tester.getCenter(find.text('4')),
+        );
+        await tester.pump();
+
+        expect(pressed, isTrue, reason: 'onPressed should fire on tap down');
+
+        await gesture.up();
+        await tester.pumpAndSettle();
+      });
+
+      testWidgets('should remain responsive during glow animation', (
+        tester,
+      ) async {
+        var pressCount = 0;
+
+        await tester.pumpApp(
+          Scaffold(
+            body: CalculatorButton(label: '7', onPressed: () => pressCount++),
+          ),
+        );
+
+        // First tap — triggers glow animation
+        await tester.tap(find.text('7'));
+        // Pump briefly so the animation is mid-flight (not settled)
+        await tester.pump(const Duration(milliseconds: 50));
+
+        // Second tap while the glow is still fading
+        await tester.tap(find.text('7'));
+        await tester.pump(const Duration(milliseconds: 50));
+
+        // Third tap during animation
+        await tester.tap(find.text('7'));
+        await tester.pumpAndSettle();
+
+        expect(pressCount, 3);
+      });
+    });
   });
 }
