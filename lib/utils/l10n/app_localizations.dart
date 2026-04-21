@@ -98,7 +98,6 @@ abstract class AppLocalizations {
     Locale('en'),
     Locale('es'),
     Locale('pt'),
-    Locale('pt', 'BR'),
   ];
 
   /// The application title
@@ -154,6 +153,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'%'**
   String get percent;
+
+  /// Accessibility label for the contextual C (clear all) button
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all'**
+  String get clearAll;
+
+  /// Accessibility label for the parenthesis toggle button
+  ///
+  /// In en, this message translates to:
+  /// **'Parenthesis'**
+  String get parenthesis;
 }
 
 class _AppLocalizationsDelegate
@@ -174,18 +185,6 @@ class _AppLocalizationsDelegate
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
-  // Lookup logic when language+country codes are specified.
-  switch (locale.languageCode) {
-    case 'pt':
-      {
-        switch (locale.countryCode) {
-          case 'BR':
-            return AppLocalizationsPtBr();
-        }
-        break;
-      }
-  }
-
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
     case 'en':

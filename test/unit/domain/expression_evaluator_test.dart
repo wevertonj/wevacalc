@@ -231,5 +231,96 @@ void main() {
         },
       );
     });
+
+    group('parentheses', () {
+      test('should evaluate simple parenthesized expression', () {
+        // (5 + 3) × 2 = 16
+        final result = evaluator.evaluate('( 5.00 + 3.00 ) × 2.00');
+
+        expect(result, '16.00');
+      });
+
+      test('should override precedence with parentheses', () {
+        // 2 × (3 + 4) = 14, not (2 × 3) + 4 = 10
+        final result = evaluator.evaluate('2.00 × ( 3.00 + 4.00 )');
+
+        expect(result, '14.00');
+      });
+
+      test('should evaluate nested parentheses', () {
+        // (10 × (2 + 3)) = 50
+        final result = evaluator.evaluate('( 10.00 × ( 2.00 + 3.00 ) )');
+
+        expect(result, '50.00');
+      });
+
+      test('should evaluate deeply nested parentheses', () {
+        // ((((5 + 5)))) = 10
+        final result = evaluator.evaluate('( ( ( ( 5.00 + 5.00 ) ) ) )');
+
+        expect(result, '10.00');
+      });
+
+      test('should evaluate complex nested expression with all operators', () {
+        // (10 × 50) + 30 + (48 ÷ (18 × 1.5%)) = 500 + 30 + (48 ÷ 0.27) = 707.78
+        final result = evaluator.evaluate(
+          '( 10.00 × 50.00 ) + 30.00 + ( 48.00 ÷ ( 18.00 × 1.50% ) )',
+        );
+
+        expect(result, isNotNull);
+        // 18 × 1.5% in × context = 18 × 0.015 = 0.27
+        // 48 ÷ 0.27 = 177.7777...
+        // 500 + 30 + 177.78 = 707.78
+        expect(result, '707.78');
+      });
+
+      test('should evaluate parentheses without spaces', () {
+        final result = evaluator.evaluate('(5.00+3.00)×2.00');
+
+        expect(result, '16.00');
+      });
+
+      test('should evaluate percentage inside parentheses', () {
+        // (100 + 10%) × 2 → inside: 100 + 10 = 110; × 2 = 220
+        final result = evaluator.evaluate('( 100.00 + 10.00% ) × 2.00');
+
+        expect(result, '220.00');
+      });
+
+      test('should return null for unbalanced opening parenthesis', () {
+        final result = evaluator.evaluate('( 5.00 + 3.00');
+
+        expect(result, isNull);
+      });
+
+      test('should return null for unbalanced closing parenthesis', () {
+        final result = evaluator.evaluate('5.00 + 3.00 )');
+
+        expect(result, isNull);
+      });
+
+      test('should return null for empty parentheses', () {
+        final result = evaluator.evaluate('( )');
+
+        expect(result, isNull);
+      });
+
+      test(
+        'should evaluate paren result feeding into outer with precedence',
+        () {
+          // 5 + (2 × 3) = 11
+          final result = evaluator.evaluate('5.00 + ( 2.00 × 3.00 )');
+
+          expect(result, '11.00');
+        },
+      );
+
+      test('should evaluate two parenthesized terms in sequence', () {
+        // (2 + 3) × (4 + 1) = 5 × 5 = 25
+        final result = evaluator.evaluate('( 2.00 + 3.00 ) × ( 4.00 + 1.00 )');
+
+        expect(result, '25.00');
+      });
+    });
   });
 }

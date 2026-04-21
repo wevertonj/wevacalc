@@ -8,5 +8,7 @@
   "clear": "C",
   "backspace": "Borrar",
   "equals": "=",
-  "percent": "%"
+  "percent": "%",
+  "clearAll": "Borrar todo",
+  "parenthesis": "Paréntesis"
 }

@@ -8,7 +8,7 @@ class CalculatorKeypad extends StatelessWidget {
   final ValueChanged<String> onOperator;
   final VoidCallback onEquals;
   final VoidCallback onClear;
-  final VoidCallback onBackspace;
+  final VoidCallback onParenthesis;
   final VoidCallback onPercent;
   final VoidCallback onDoubleZero;
   final VoidCallback onTripleZero;
@@ -19,7 +19,7 @@ class CalculatorKeypad extends StatelessWidget {
     required this.onOperator,
     required this.onEquals,
     required this.onClear,
-    required this.onBackspace,
+    required this.onParenthesis,
     required this.onPercent,
     required this.onDoubleZero,
     required this.onTripleZero,
@@ -35,7 +35,7 @@ class CalculatorKeypad extends StatelessWidget {
           _buildRow([
             _action('C', onClear),
             _action('%', onPercent),
-            _actionIcon(Icons.backspace_rounded, onBackspace),
+            _action('( )', onParenthesis),
             _operator('÷'),
           ]),
           SizedBox(height: AppLayout.spacing.small),
@@ -94,19 +94,15 @@ class CalculatorKeypad extends StatelessWidget {
     );
   }
 
-  Widget _action(String label, VoidCallback onPressed) {
+  Widget _action(
+    String label,
+    VoidCallback onPressed, {
+    bool isDimmed = false,
+  }) {
     return CalculatorButton(
       label: label,
       variant: ButtonVariant.functional,
-      onPressed: onPressed,
-    );
-  }
-
-  Widget _actionIcon(IconData icon, VoidCallback onPressed) {
-    return CalculatorButton(
-      label: 'backspace',
-      icon: icon,
-      variant: ButtonVariant.functional,
+      isDimmed: isDimmed,
       onPressed: onPressed,
     );
   }

@@ -8,13 +8,60 @@ class ExpressionEvaluator {
     final tokens = _tokenize(trimmed);
     if (tokens == null || tokens.isEmpty) return null;
 
-    final resolved = _resolvePercentages(tokens);
+    final flat = _resolveParens(tokens);
+    if (flat == null) return null;
+
+    final resolved = _resolvePercentages(flat);
     if (resolved == null) return null;
 
     final result = _evaluateTokens(resolved);
     if (result == null) return null;
 
     return _formatResult(result);
+  }
+
+  /// Resolves all parenthesized sub-expressions by repeatedly evaluating
+  /// the innermost group and replacing it with the resulting numeric token.
+  /// Returns null if parentheses are unbalanced or empty.
+  List<String>? _resolveParens(List<String> input) {
+    var tokens = input;
+
+    while (true) {
+      var lastOpen = -1;
+      var matchingClose = -1;
+
+      for (var i = 0; i < tokens.length; i++) {
+        if (tokens[i] == '(') {
+          lastOpen = i;
+        } else if (tokens[i] == ')') {
+          if (lastOpen == -1) return null;
+          matchingClose = i;
+          break;
+        }
+      }
+
+      if (lastOpen == -1 && matchingClose == -1) {
+        return tokens;
+      }
+      if (lastOpen != -1 && matchingClose == -1) {
+        return null;
+      }
+
+      final inner = tokens.sublist(lastOpen + 1, matchingClose);
+      if (inner.isEmpty) return null;
+
+      final percentResolved = _resolvePercentages(inner);
+      if (percentResolved == null) return null;
+
+      final innerResult = _evaluateTokens(percentResolved);
+      if (innerResult == null) return null;
+
+      tokens = [
+        ...tokens.sublist(0, lastOpen),
+        innerResult.toString(),
+        ...tokens.sublist(matchingClose + 1),
+      ];
+    }
   }
 
   List<String>? _tokenize(String expression) {
@@ -45,6 +92,12 @@ class ExpressionEvaluator {
           buffer.clear();
         }
         tokens.add('%');
+      } else if (char == '(' || char == ')') {
+        if (buffer.isNotEmpty) {
+          tokens.add(buffer.toString());
+          buffer.clear();
+        }
+        tokens.add(char);
       } else {
         buffer.write(char);
       }
@@ -61,8 +114,12 @@ class ExpressionEvaluator {
 
     if (tokens.isEmpty) return null;
 
-    // Validate: must start with a number
-    if (_isOperator(tokens.first) || tokens.first == '%') return null;
+    // Validate: must start with a number or an opening parenthesis
+    if (_isOperator(tokens.first) ||
+        tokens.first == '%' ||
+        tokens.first == ')') {
+      return null;
+    }
 
     return tokens;
   }
@@ -100,14 +157,14 @@ class ExpressionEvaluator {
           if (operator == '+' || operator == '−') {
             // percentage of base: 100 + 10% means 100 + (100 * 10/100)
             final percentAmount = baseValue * percentValue / 100.0;
-            result.add(_formatResult(percentAmount));
+            result.add(percentAmount.toString());
           } else {
             // For × and ÷, just convert to fraction
-            result.add(_formatResult(percentValue / 100.0));
+            result.add((percentValue / 100.0).toString());
           }
         } else {
           // No context — just convert to fraction
-          result.add(_formatResult(percentValue / 100.0));
+          result.add((percentValue / 100.0).toString());
         }
       } else {
         result.add(tokens[i]);

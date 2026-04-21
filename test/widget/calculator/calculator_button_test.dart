@@ -240,5 +240,64 @@ void main() {
         expect(pressCount, 3);
       });
     });
+
+    group('isDimmed', () {
+      testWidgets('should default to not dimmed', (tester) async {
+        await tester.pumpApp(
+          Scaffold(
+            body: CalculatorButton(
+              label: '+',
+              onPressed: () {},
+              variant: ButtonVariant.functional,
+            ),
+          ),
+        );
+
+        final button = tester.widget<CalculatorButton>(
+          find.byType(CalculatorButton),
+        );
+
+        expect(button.isDimmed, isFalse);
+      });
+
+      testWidgets(
+        'should animate text color toward primary when transitioning out of dimmed state',
+        (tester) async {
+          // Initial dimmed state
+          await tester.pumpApp(
+            Scaffold(
+              body: CalculatorButton(
+                label: 'C',
+                onPressed: () {},
+                variant: ButtonVariant.functional,
+                isDimmed: true,
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          final dimmedColor = tester.widget<Text>(find.text('C')).style?.color;
+
+          // Switch to active
+          await tester.pumpApp(
+            Scaffold(
+              body: CalculatorButton(
+                label: 'C',
+                onPressed: () {},
+                variant: ButtonVariant.functional,
+                isDimmed: false,
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          final activeColor = tester.widget<Text>(find.text('C')).style?.color;
+          final theme = Theme.of(tester.element(find.byType(CalculatorButton)));
+
+          expect(dimmedColor, isNot(equals(activeColor)));
+          expect(activeColor, equals(theme.colorScheme.primary));
+        },
+      );
+    });
   });
 }

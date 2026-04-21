@@ -7,23 +7,32 @@ import 'package:wevacalc/ui/calculator/widgets/calculator_keypad.dart';
 import '../../helpers/pump_app.dart';
 
 void main() {
+  CalculatorKeypad buildKeypad({
+    ValueChanged<String>? onDigit,
+    ValueChanged<String>? onOperator,
+    VoidCallback? onEquals,
+    VoidCallback? onClear,
+    VoidCallback? onParenthesis,
+    VoidCallback? onPercent,
+    VoidCallback? onDoubleZero,
+    VoidCallback? onTripleZero,
+  }) {
+    return CalculatorKeypad(
+      onDigit: onDigit ?? (_) {},
+      onOperator: onOperator ?? (_) {},
+      onEquals: onEquals ?? () {},
+      onClear: onClear ?? () {},
+      onParenthesis: onParenthesis ?? () {},
+      onPercent: onPercent ?? () {},
+      onDoubleZero: onDoubleZero ?? () {},
+      onTripleZero: onTripleZero ?? () {},
+    );
+  }
+
   group('CalculatorKeypad', () {
     group('rendering', () {
       testWidgets('should display all numeric buttons', (tester) async {
-        await tester.pumpApp(
-          Scaffold(
-            body: CalculatorKeypad(
-              onDigit: (_) {},
-              onOperator: (_) {},
-              onEquals: () {},
-              onClear: () {},
-              onBackspace: () {},
-              onPercent: () {},
-              onDoubleZero: () {},
-              onTripleZero: () {},
-            ),
-          ),
-        );
+        await tester.pumpApp(Scaffold(body: buildKeypad()));
 
         for (final digit in [
           '0',
@@ -46,20 +55,7 @@ void main() {
       });
 
       testWidgets('should display all operator buttons', (tester) async {
-        await tester.pumpApp(
-          Scaffold(
-            body: CalculatorKeypad(
-              onDigit: (_) {},
-              onOperator: (_) {},
-              onEquals: () {},
-              onClear: () {},
-              onBackspace: () {},
-              onPercent: () {},
-              onDoubleZero: () {},
-              onTripleZero: () {},
-            ),
-          ),
-        );
+        await tester.pumpApp(Scaffold(body: buildKeypad()));
 
         expect(find.text('÷'), findsOneWidget);
         expect(find.text('×'), findsOneWidget);
@@ -67,45 +63,27 @@ void main() {
         expect(find.text('+'), findsOneWidget);
       });
 
-      testWidgets('should display action buttons', (tester) async {
-        await tester.pumpApp(
-          Scaffold(
-            body: CalculatorKeypad(
-              onDigit: (_) {},
-              onOperator: (_) {},
-              onEquals: () {},
-              onClear: () {},
-              onBackspace: () {},
-              onPercent: () {},
-              onDoubleZero: () {},
-              onTripleZero: () {},
-            ),
-          ),
-        );
+      testWidgets('should display contextual action buttons', (tester) async {
+        await tester.pumpApp(Scaffold(body: buildKeypad()));
 
         expect(find.text('C'), findsOneWidget);
         expect(find.text('%'), findsOneWidget);
         expect(find.text('='), findsOneWidget);
-        expect(find.byIcon(Icons.backspace_rounded), findsOneWidget);
+        expect(find.text('( )'), findsOneWidget);
+      });
+
+      testWidgets('should not display the legacy backspace icon', (
+        tester,
+      ) async {
+        await tester.pumpApp(Scaffold(body: buildKeypad()));
+
+        expect(find.byIcon(Icons.backspace_rounded), findsNothing);
       });
 
       testWidgets('should display double zero and triple zero buttons', (
         tester,
       ) async {
-        await tester.pumpApp(
-          Scaffold(
-            body: CalculatorKeypad(
-              onDigit: (_) {},
-              onOperator: (_) {},
-              onEquals: () {},
-              onClear: () {},
-              onBackspace: () {},
-              onPercent: () {},
-              onDoubleZero: () {},
-              onTripleZero: () {},
-            ),
-          ),
-        );
+        await tester.pumpApp(Scaffold(body: buildKeypad()));
 
         expect(find.text('00'), findsOneWidget);
         expect(find.text('000'), findsOneWidget);
@@ -114,20 +92,7 @@ void main() {
       testWidgets('should have exactly 20 CalculatorButton widgets', (
         tester,
       ) async {
-        await tester.pumpApp(
-          Scaffold(
-            body: CalculatorKeypad(
-              onDigit: (_) {},
-              onOperator: (_) {},
-              onEquals: () {},
-              onClear: () {},
-              onBackspace: () {},
-              onPercent: () {},
-              onDoubleZero: () {},
-              onTripleZero: () {},
-            ),
-          ),
-        );
+        await tester.pumpApp(Scaffold(body: buildKeypad()));
 
         expect(find.byType(CalculatorButton), findsNWidgets(20));
       });
@@ -138,18 +103,7 @@ void main() {
         String? tappedDigit;
 
         await tester.pumpApp(
-          Scaffold(
-            body: CalculatorKeypad(
-              onDigit: (d) => tappedDigit = d,
-              onOperator: (_) {},
-              onEquals: () {},
-              onClear: () {},
-              onBackspace: () {},
-              onPercent: () {},
-              onDoubleZero: () {},
-              onTripleZero: () {},
-            ),
-          ),
+          Scaffold(body: buildKeypad(onDigit: (d) => tappedDigit = d)),
         );
 
         await tester.tap(find.text('7'));
@@ -164,18 +118,7 @@ void main() {
         String? tappedOperator;
 
         await tester.pumpApp(
-          Scaffold(
-            body: CalculatorKeypad(
-              onDigit: (_) {},
-              onOperator: (op) => tappedOperator = op,
-              onEquals: () {},
-              onClear: () {},
-              onBackspace: () {},
-              onPercent: () {},
-              onDoubleZero: () {},
-              onTripleZero: () {},
-            ),
-          ),
+          Scaffold(body: buildKeypad(onOperator: (op) => tappedOperator = op)),
         );
 
         await tester.tap(find.text('+'));
@@ -188,18 +131,7 @@ void main() {
         var equalsCalled = false;
 
         await tester.pumpApp(
-          Scaffold(
-            body: CalculatorKeypad(
-              onDigit: (_) {},
-              onOperator: (_) {},
-              onEquals: () => equalsCalled = true,
-              onClear: () {},
-              onBackspace: () {},
-              onPercent: () {},
-              onDoubleZero: () {},
-              onTripleZero: () {},
-            ),
-          ),
+          Scaffold(body: buildKeypad(onEquals: () => equalsCalled = true)),
         );
 
         await tester.tap(find.text('='));
@@ -212,18 +144,7 @@ void main() {
         var clearCalled = false;
 
         await tester.pumpApp(
-          Scaffold(
-            body: CalculatorKeypad(
-              onDigit: (_) {},
-              onOperator: (_) {},
-              onEquals: () {},
-              onClear: () => clearCalled = true,
-              onBackspace: () {},
-              onPercent: () {},
-              onDoubleZero: () {},
-              onTripleZero: () {},
-            ),
-          ),
+          Scaffold(body: buildKeypad(onClear: () => clearCalled = true)),
         );
 
         await tester.tap(find.text('C'));
@@ -232,48 +153,24 @@ void main() {
         expect(clearCalled, isTrue);
       });
 
-      testWidgets('should call onBackspace when backspace tapped', (
-        tester,
-      ) async {
-        var backspaceCalled = false;
+      testWidgets('should call onParenthesis when ( ) tapped', (tester) async {
+        var parenCalled = false;
 
         await tester.pumpApp(
-          Scaffold(
-            body: CalculatorKeypad(
-              onDigit: (_) {},
-              onOperator: (_) {},
-              onEquals: () {},
-              onClear: () {},
-              onBackspace: () => backspaceCalled = true,
-              onPercent: () {},
-              onDoubleZero: () {},
-              onTripleZero: () {},
-            ),
-          ),
+          Scaffold(body: buildKeypad(onParenthesis: () => parenCalled = true)),
         );
 
-        await tester.tap(find.byIcon(Icons.backspace_rounded));
+        await tester.tap(find.text('( )'));
         await tester.pumpAndSettle();
 
-        expect(backspaceCalled, isTrue);
+        expect(parenCalled, isTrue);
       });
 
       testWidgets('should call onPercent when % tapped', (tester) async {
         var percentCalled = false;
 
         await tester.pumpApp(
-          Scaffold(
-            body: CalculatorKeypad(
-              onDigit: (_) {},
-              onOperator: (_) {},
-              onEquals: () {},
-              onClear: () {},
-              onBackspace: () {},
-              onPercent: () => percentCalled = true,
-              onDoubleZero: () {},
-              onTripleZero: () {},
-            ),
-          ),
+          Scaffold(body: buildKeypad(onPercent: () => percentCalled = true)),
         );
 
         await tester.tap(find.text('%'));
@@ -287,16 +184,7 @@ void main() {
 
         await tester.pumpApp(
           Scaffold(
-            body: CalculatorKeypad(
-              onDigit: (_) {},
-              onOperator: (_) {},
-              onEquals: () {},
-              onClear: () {},
-              onBackspace: () {},
-              onPercent: () {},
-              onDoubleZero: () => doubleZeroCalled = true,
-              onTripleZero: () {},
-            ),
+            body: buildKeypad(onDoubleZero: () => doubleZeroCalled = true),
           ),
         );
 
@@ -311,16 +199,7 @@ void main() {
 
         await tester.pumpApp(
           Scaffold(
-            body: CalculatorKeypad(
-              onDigit: (_) {},
-              onOperator: (_) {},
-              onEquals: () {},
-              onClear: () {},
-              onBackspace: () {},
-              onPercent: () {},
-              onDoubleZero: () {},
-              onTripleZero: () => tripleZeroCalled = true,
-            ),
+            body: buildKeypad(onTripleZero: () => tripleZeroCalled = true),
           ),
         );
 
@@ -331,6 +210,19 @@ void main() {
       });
     });
 
+    testWidgets('should keep C button active by default', (tester) async {
+      await tester.pumpApp(Scaffold(body: buildKeypad()));
+
+      final clearButton = tester.widget<CalculatorButton>(
+        find.ancestor(
+          of: find.text('C'),
+          matching: find.byType(CalculatorButton),
+        ),
+      );
+
+      expect(clearButton.isDimmed, isFalse);
+    });
+
     group('rapid input', () {
       testWidgets('should dispatch every digit in a rapid burst', (
         tester,
@@ -338,22 +230,9 @@ void main() {
         final tappedDigits = <String>[];
 
         await tester.pumpApp(
-          Scaffold(
-            body: CalculatorKeypad(
-              onDigit: tappedDigits.add,
-              onOperator: (_) {},
-              onEquals: () {},
-              onClear: () {},
-              onBackspace: () {},
-              onPercent: () {},
-              onDoubleZero: () {},
-              onTripleZero: () {},
-            ),
-          ),
+          Scaffold(body: buildKeypad(onDigit: tappedDigits.add)),
         );
 
-        // Tap a sequence of digits in rapid succession with no
-        // pumpAndSettle between taps — animations are still running.
         const sequence = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
         for (final d in sequence) {
           await tester.tap(find.text(d));
@@ -371,15 +250,10 @@ void main() {
 
         await tester.pumpApp(
           Scaffold(
-            body: CalculatorKeypad(
+            body: buildKeypad(
               onDigit: (d) => tapped.add('d:$d'),
               onOperator: (op) => tapped.add('o:$op'),
               onEquals: () => tapped.add('='),
-              onClear: () {},
-              onBackspace: () {},
-              onPercent: () {},
-              onDoubleZero: () {},
-              onTripleZero: () {},
             ),
           ),
         );

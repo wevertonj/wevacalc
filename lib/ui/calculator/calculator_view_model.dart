@@ -24,7 +24,11 @@ class CalculatorViewModel extends ChangeNotifier {
   final ExpressionEvaluator _evaluator = ExpressionEvaluator();
 
   final List<Calculation> _timelineEntries = [];
-  final List<_ExpressionPart> _expressionParts = [];
+
+  /// Committed tokens of the in-progress expression. Each entry is one of:
+  /// a numeric value (optionally suffixed with `%`), an operator
+  /// (`+`, `−`, `×`, `÷`), or a parenthesis (`(`, `)`).
+  final List<String> _committed = [];
 
   /// Fila de ações do usuário.
   ///
@@ -35,10 +39,20 @@ class CalculatorViewModel extends ChangeNotifier {
   final Queue<VoidCallback> _actionQueue = Queue<VoidCallback>();
   bool _isProcessingActions = false;
 
-  String? _currentOperator;
-  bool _isNewInput = true;
+  /// Operator typed but not yet committed (waiting for the right-hand side).
+  String? _pendingOperator;
+
+  /// True while the value held by [_add2Engine] represents the operand
+  /// currently being typed (uncommitted).
+  bool _engineActive = false;
+
+  /// Indicates the engine value is a stale result (post `=` or session load)
+  /// and the next digit input should reset the engine to start fresh.
   bool _shouldResetOnInput = false;
+
+  /// Marks the active engine value as a literal percentage operand.
   bool _currentIsPercentage = false;
+
   int _visibleCount = 20;
   DecimalSeparator _decimalSeparator = DecimalSeparator.dot;
 
@@ -61,64 +75,87 @@ class CalculatorViewModel extends ChangeNotifier {
 
   String get currentDisplayValue => _formatValue(_add2Engine.formattedValue);
 
-  String? get currentOperator => _currentOperator;
+  String? get currentOperator => _pendingOperator;
+
+  /// Number of unmatched opening parentheses in the committed expression.
+  int get openParenCount {
+    var n = 0;
+    for (final t in _committed) {
+      if (t == '(') {
+        n++;
+      } else if (t == ')') {
+        n--;
+      }
+    }
+
+    return n;
+  }
+
+  /// True when there is anything in the calculator that the user could clear:
+  /// committed tokens, an active operand, a pending operator, an in-flight
+  /// post-equals result, or session timeline entries.
+  bool get hasContent {
+    if (_committed.isNotEmpty) return true;
+    if (_engineActive) return true;
+    if (_pendingOperator != null) return true;
+    if (_timelineEntries.isNotEmpty) return true;
+    if (_shouldResetOnInput) return true;
+
+    return false;
+  }
 
   /// Full display text — the entire expression on a single line.
-  /// e.g., "7856.00", "7856.00 ×", "7856.00 × 52.00", "100.00 + 10.00%"
+  /// e.g., "7856.00", "7856.00 ×", "7856.00 × 52.00", "100.00 + 10.00%".
   String get fullDisplayText {
-    if (expression.isEmpty) {
-      return currentDisplayValue;
+    final parts = <String>[];
+    for (final t in _committed) {
+      parts.add(_formatPart(t));
+    }
+    if (_pendingOperator != null) {
+      parts.add(_pendingOperator!);
+    }
+    if (_engineActive) {
+      parts.add(_formatPart(_engineToken()));
+    } else if (_pendingOperator == null) {
+      final last = _committed.isNotEmpty ? _committed.last : null;
+      if (last != null && last != '(' && last != ')' && !_isOperator(last)) {
+        parts.add(currentDisplayValue);
+      }
     }
 
-    if (_isNewInput) {
-      return expression;
-    }
+    if (parts.isEmpty) return currentDisplayValue;
 
-    final percentSuffix = _currentIsPercentage ? '%' : '';
-
-    return '$expression $currentDisplayValue$percentSuffix';
+    return parts.join(' ');
   }
 
+  /// In-progress expression without the active engine value.
+  /// Used by widgets that show the typed expression separately.
   String get expression {
-    if (_expressionParts.isEmpty) return '';
-
-    final buffer = StringBuffer();
-    for (final part in _expressionParts) {
-      if (buffer.isNotEmpty) buffer.write(' ');
-      buffer.write(_formatPart(part.value));
+    final parts = <String>[];
+    for (final t in _committed) {
+      parts.add(_formatPart(t));
+    }
+    if (_pendingOperator != null) {
+      parts.add(_pendingOperator!);
     }
 
-    if (_currentOperator != null) {
-      buffer.write(' $_currentOperator');
-    }
-
-    return buffer.toString();
-  }
-
-  /// Formats a stored part value for display. Operators pass through.
-  /// Numeric values are formatted; values ending with `%` keep the literal
-  /// percentage suffix appended after the formatted number.
-  String _formatPart(String value) {
-    if (_isOperator(value)) return value;
-
-    if (value.endsWith('%')) {
-      final numeric = value.substring(0, value.length - 1);
-
-      return '${_formatValue(numeric)}%';
-    }
-
-    return _formatValue(value);
+    return parts.join(' ');
   }
 
   String? get previewResult {
-    if (_expressionParts.isEmpty || _currentOperator == null) return null;
-    if (_isNewInput) return null;
+    if (_committed.isEmpty) return null;
 
-    final fullExpression = _buildFullExpression();
-    final rawResult = _evaluator.evaluate(fullExpression);
-    if (rawResult == null) return null;
+    final hasActiveInput = _engineActive && _pendingOperator != null;
+    final hasClosedExpression =
+        !_engineActive && _pendingOperator == null && _lastIsClosingParen();
 
-    return _formatValue(rawResult);
+    if (!hasActiveInput && !hasClosedExpression) return null;
+
+    final raw = _buildFullExpression();
+    final result = _evaluator.evaluate(raw);
+    if (result == null) return null;
+
+    return _formatValue(result);
   }
 
   List<Calculation> get timelineEntries => List.unmodifiable(_timelineEntries);
@@ -158,32 +195,46 @@ class CalculatorViewModel extends ChangeNotifier {
 
   void inputDigit(String digit) {
     _runAction(() {
+      if (!_canInputDigit()) return;
       _prepareForDigitInput();
       _add2Engine.inputDigit(digit);
+      _engineActive = true;
       notifyListeners();
     });
   }
 
   void inputDoubleZero() {
     _runAction(() {
+      if (!_canInputDigit()) return;
       _prepareForDigitInput();
       _add2Engine.inputDoubleZero();
+      _engineActive = true;
       notifyListeners();
     });
   }
 
   void inputTripleZero() {
     _runAction(() {
+      if (!_canInputDigit()) return;
       _prepareForDigitInput();
       _add2Engine.inputTripleZero();
+      _engineActive = true;
       notifyListeners();
     });
   }
 
+  bool _canInputDigit() {
+    // After ')' with no pending operator, digits are ignored — the user must
+    // press an operator first (no implicit multiplication).
+    if (!_engineActive && _pendingOperator == null && _lastIsClosingParen()) {
+      return false;
+    }
+
+    return true;
+  }
+
   void _prepareForDigitInput() {
     if (_currentIsPercentage) {
-      // Typing a digit after applying % cancels the literal percentage marker
-      // and starts a fresh value for the same operand position.
       _add2Engine.reset();
       _currentIsPercentage = false;
 
@@ -193,9 +244,12 @@ class CalculatorViewModel extends ChangeNotifier {
     if (_shouldResetOnInput) {
       _add2Engine.reset();
       _shouldResetOnInput = false;
-    } else if (_isNewInput && _currentOperator != null) {
+
+      return;
+    }
+
+    if (!_engineActive) {
       _add2Engine.reset();
-      _isNewInput = false;
     }
   }
 
@@ -203,37 +257,28 @@ class CalculatorViewModel extends ChangeNotifier {
     _runAction(() {
       _shouldResetOnInput = false;
 
-      if (_currentOperator != null && !_isNewInput && !_add2Engine.isEmpty) {
-        // Accumulate current value and operator into expression parts
-        _expressionParts.add(_ExpressionPart(_currentOperator!));
-        _expressionParts.add(_ExpressionPart(_currentValueAsPart()));
-      } else if (_currentOperator != null && _isNewInput) {
-        // Just replace the operator (no new digits entered)
-      } else if (_expressionParts.isEmpty || (_currentOperator == null)) {
-        // First operator — save current value
-        _expressionParts.clear();
-        _expressionParts.add(_ExpressionPart(_currentValueAsPart()));
+      if (_engineActive) {
+        if (_pendingOperator != null) {
+          _committed.add(_pendingOperator!);
+        }
+        _committed.add(_engineToken());
+        _engineActive = false;
+      } else if (_pendingOperator == null && _committed.isEmpty) {
+        // No content yet — commit current engine value (e.g., 0.00) so the
+        // expression starts with an operand.
+        _committed.add(_engineToken());
       }
 
       _currentIsPercentage = false;
-      _currentOperator = operator;
-      _isNewInput = true;
+      _pendingOperator = operator;
       notifyListeners();
     });
   }
 
-  /// Returns the current engine value with a `%` suffix appended
-  /// when the percentage marker is active.
-  String _currentValueAsPart() {
-    final value = _add2Engine.formattedValue;
-
-    return _currentIsPercentage ? '$value%' : value;
-  }
-
   void applyPercentage() {
     _runAction(() {
-      if (_currentOperator == null || _expressionParts.isEmpty) return;
-      if (_isNewInput) return;
+      if (_pendingOperator == null) return;
+      if (!_engineActive) return;
       if (_add2Engine.isEmpty) return;
       if (_currentIsPercentage) return;
 
@@ -242,17 +287,95 @@ class CalculatorViewModel extends ChangeNotifier {
     });
   }
 
+  /// Toggle insertion of an opening or closing parenthesis depending on
+  /// the current state. Inserts `(` when at start, after an operator, or
+  /// after another `(`. Inserts `)` when there is at least one unmatched
+  /// `(` and the last token is a complete operand.
+  void inputParenthesis() {
+    _runAction(() {
+      if (_canCloseParen()) {
+        _insertCloseParen();
+        notifyListeners();
+
+        return;
+      }
+
+      if (_canOpenParen()) {
+        _insertOpenParen();
+        notifyListeners();
+      }
+    });
+  }
+
+  bool _canCloseParen() {
+    if (openParenCount <= 0) return false;
+    if (_pendingOperator != null && !_engineActive) return false;
+    if (_engineActive) return true;
+    if (_committed.isEmpty) return false;
+
+    final last = _committed.last;
+
+    return last != '(' && !_isOperator(last);
+  }
+
+  bool _canOpenParen() {
+    if (_engineActive) return false;
+    if (_pendingOperator != null) return true;
+    if (_committed.isEmpty) return true;
+    if (_committed.last == '(') return true;
+
+    return false;
+  }
+
+  void _insertOpenParen() {
+    if (_pendingOperator != null) {
+      _committed.add(_pendingOperator!);
+      _pendingOperator = null;
+    }
+    _committed.add('(');
+    _add2Engine.reset();
+    _engineActive = false;
+    _currentIsPercentage = false;
+    _shouldResetOnInput = false;
+  }
+
+  void _insertCloseParen() {
+    if (_engineActive) {
+      if (_pendingOperator != null) {
+        _committed.add(_pendingOperator!);
+        _pendingOperator = null;
+      }
+      _committed.add(_engineToken());
+      _engineActive = false;
+    }
+    _committed.add(')');
+    _currentIsPercentage = false;
+    _shouldResetOnInput = false;
+  }
+
   void equals() {
     _runAction(() {
-      if (_currentOperator == null || _expressionParts.isEmpty) return;
-      if (_isNewInput && _add2Engine.isEmpty) return;
+      // Need at least one operator anywhere to be evaluable.
+      final hasOperator =
+          _pendingOperator != null || _committed.any(_isOperator);
+      if (!hasOperator) return;
 
-      final fullExpression = _buildFullExpression();
-      final result = _evaluator.evaluate(fullExpression);
+      if (_pendingOperator != null && !_engineActive) {
+        // "12.50 +" with no RHS — evaluator handles trailing operator
+        // gracefully, so we still proceed.
+      }
 
+      var raw = _buildFullExpression();
+      // Auto-close any unbalanced parentheses before evaluation.
+      final open = openParenCount;
+      if (open > 0) {
+        raw = '$raw${' )' * open}';
+      }
+
+      final result = _evaluator.evaluate(raw);
       if (result == null) return;
 
-      final formattedExpression = _formatExpression(fullExpression);
+      final formattedExpression = _formatExpression(raw);
       final formattedResult = _formatValue(result);
 
       final calculation = Calculation(
@@ -263,19 +386,17 @@ class CalculatorViewModel extends ChangeNotifier {
 
       _timelineEntries.add(calculation);
 
-      // Persist to history (raw values for portability)
       _historyRepository.add(
         HistoryEntry(
-          expression: fullExpression,
+          expression: raw,
           result: result,
           createdAt: DateTime.now(),
         ),
       );
 
-      // Set result as current value for potential chaining
-      _expressionParts.clear();
-      _currentOperator = null;
-      _isNewInput = true;
+      _committed.clear();
+      _pendingOperator = null;
+      _engineActive = false;
       _shouldResetOnInput = true;
       _currentIsPercentage = false;
       _add2Engine.setValue(_parseToInt(result));
@@ -286,10 +407,11 @@ class CalculatorViewModel extends ChangeNotifier {
 
   void clear() {
     _runAction(() {
+      if (!hasContent) return;
       _add2Engine.reset();
-      _expressionParts.clear();
-      _currentOperator = null;
-      _isNewInput = true;
+      _committed.clear();
+      _pendingOperator = null;
+      _engineActive = false;
       _shouldResetOnInput = false;
       _currentIsPercentage = false;
       _timelineEntries.clear();
@@ -299,7 +421,7 @@ class CalculatorViewModel extends ChangeNotifier {
 
   void backspace() {
     _runAction(() {
-      // If a literal % marker is active on the current value, drop it first.
+      // Drop the literal `%` marker first if active.
       if (_currentIsPercentage) {
         _currentIsPercentage = false;
         notifyListeners();
@@ -307,87 +429,80 @@ class CalculatorViewModel extends ChangeNotifier {
         return;
       }
 
-      // When a trailing operator is shown but no new digits entered yet,
-      // remove the operator first (e.g., "3.00 + 5.00 +" → "3.00 + 5.00")
-      if (_isNewInput && _currentOperator != null) {
-        _currentOperator = null;
-        _isNewInput = false;
-
-        // Restore engine to the last value in expression parts
-        if (_expressionParts.isNotEmpty) {
-          final lastPart = _expressionParts.removeLast();
-          _restoreEngineFromPart(lastPart.value);
-
-          if (_expressionParts.isNotEmpty) {
-            final operatorPart = _expressionParts.removeLast();
-            _currentOperator = operatorPart.value;
+      // Pending operator with no new digits — remove the operator first.
+      if (_pendingOperator != null && !_engineActive) {
+        _pendingOperator = null;
+        if (_committed.isNotEmpty) {
+          final last = _committed.last;
+          // Keep structural expression tokens intact when the trailing
+          // operator is deleted after a closed group, e.g. "( ... ) +".
+          if (last != '(' && last != ')' && !_isOperator(last)) {
+            _committed.removeLast();
+            _restoreEngineFromToken(last);
           }
         }
-
         notifyListeners();
 
         return;
       }
 
-      if (!_add2Engine.isEmpty) {
+      if (_engineActive && !_add2Engine.isEmpty) {
         _add2Engine.deleteLastDigit();
-        notifyListeners();
-
-        return;
-      }
-
-      // Engine is empty — backspace into the expression
-      if (_currentOperator != null) {
-        _currentOperator = null;
-        _isNewInput = false;
-
-        if (_expressionParts.isNotEmpty) {
-          final lastPart = _expressionParts.removeLast();
-          _restoreEngineFromPart(lastPart.value);
-
-          if (_expressionParts.isNotEmpty) {
-            final operatorPart = _expressionParts.removeLast();
-            _currentOperator = operatorPart.value;
+        if (_add2Engine.isEmpty) {
+          _engineActive = false;
+          // If we just emptied the right-hand operand AND there is no
+          // pending operator, promote a dangling committed operator back
+          // to `_pendingOperator`. Otherwise the display would show an
+          // orphan "0.00" after the operator.
+          if (_pendingOperator == null &&
+              _committed.isNotEmpty &&
+              _isOperator(_committed.last)) {
+            _pendingOperator = _committed.removeLast();
           }
         }
-
         notifyListeners();
 
         return;
       }
 
-      // No operator, but expression parts exist (e.g., after removing operator)
-      if (_expressionParts.isNotEmpty) {
-        final lastPart = _expressionParts.removeLast();
-
-        // If it's an operator, restore the value before it
-        if (_isOperator(lastPart.value) && _expressionParts.isNotEmpty) {
-          final valuePart = _expressionParts.removeLast();
-          _restoreEngineFromPart(valuePart.value);
+      // Engine empty — backspace into committed tokens.
+      if (_committed.isNotEmpty) {
+        final last = _committed.removeLast();
+        if (last == ')') {
+          // Removing a closing paren: restore the operand just inside the
+          // group (if any) to the engine so the user can keep editing it.
+          if (_committed.isNotEmpty && _isValueToken(_committed.last)) {
+            final value = _committed.removeLast();
+            _restoreEngineFromToken(value);
+          } else {
+            _add2Engine.reset();
+            _engineActive = false;
+            _currentIsPercentage = false;
+          }
+        } else if (last == '(') {
+          // Opening paren removed structurally — engine stays empty.
+          _add2Engine.reset();
+          _engineActive = false;
+          _currentIsPercentage = false;
+        } else if (_isOperator(last)) {
+          if (_committed.isNotEmpty) {
+            final value = _committed.removeLast();
+            if (value == '(' || value == ')') {
+              // Don't pop a paren when removing an operator — put it back.
+              _committed.add(value);
+              _add2Engine.reset();
+              _engineActive = false;
+              _currentIsPercentage = false;
+            } else {
+              _restoreEngineFromToken(value);
+            }
+          }
         } else {
-          _restoreEngineFromPart(lastPart.value);
+          _restoreEngineFromToken(last);
         }
-
         notifyListeners();
       }
     });
-  }
-
-  /// Restores the engine state (and the percentage flag) from a stored
-  /// expression part value, which may carry a literal `%` suffix.
-  void _restoreEngineFromPart(String partValue) {
-    if (partValue.endsWith('%')) {
-      final numeric = partValue.substring(0, partValue.length - 1);
-      _add2Engine.setValue(_parseToInt(numeric));
-      _currentIsPercentage = true;
-    } else {
-      _add2Engine.setValue(_parseToInt(partValue));
-      _currentIsPercentage = false;
-    }
-  }
-
-  bool _isOperator(String value) {
-    return value == '+' || value == '−' || value == '×' || value == '÷';
   }
 
   void loadMoreTimelineEntries() {
@@ -408,34 +523,86 @@ class CalculatorViewModel extends ChangeNotifier {
       );
     }
 
-    // Set last result as current display
     if (entries.isNotEmpty) {
       final lastResult = entries.last.result;
       _add2Engine.setValue(_parseToInt(lastResult));
     }
 
-    _expressionParts.clear();
-    _currentOperator = null;
-    _isNewInput = true;
+    _committed.clear();
+    _pendingOperator = null;
+    _engineActive = false;
     _currentIsPercentage = false;
+    _shouldResetOnInput = false;
     notifyListeners();
   }
 
+  // ----- Helpers --------------------------------------------------------
+
+  String _engineToken() {
+    final value = _add2Engine.formattedValue;
+
+    return _currentIsPercentage ? '$value%' : value;
+  }
+
+  bool _lastIsClosingParen() {
+    return _committed.isNotEmpty && _committed.last == ')';
+  }
+
+  bool _isOperator(String value) {
+    return value == '+' || value == '−' || value == '×' || value == '÷';
+  }
+
+  bool _isValueToken(String value) {
+    if (value == '(' || value == ')') return false;
+
+    return !_isOperator(value);
+  }
+
+  /// Formats a single committed (or active) token for display: numbers go
+  /// through the configured number formatter, operators and parentheses pass
+  /// through, and `%`-suffixed values keep the literal percent sign.
+  String _formatPart(String value) {
+    if (_isOperator(value)) return value;
+    if (value == '(' || value == ')') return value;
+
+    if (value.endsWith('%')) {
+      final numeric = value.substring(0, value.length - 1);
+
+      return '${_formatValue(numeric)}%';
+    }
+
+    return _formatValue(value);
+  }
+
+  /// Restores the engine state (and the percentage flag) from a committed
+  /// token, which may carry a literal `%` suffix. Operators and parens are
+  /// not restorable as engine values; the caller is responsible for filtering.
+  void _restoreEngineFromToken(String token) {
+    if (token == '(' || token == ')') {
+      _add2Engine.reset();
+      _engineActive = false;
+      _currentIsPercentage = false;
+
+      return;
+    }
+
+    if (token.endsWith('%')) {
+      final numeric = token.substring(0, token.length - 1);
+      _add2Engine.setValue(_parseToInt(numeric));
+      _currentIsPercentage = true;
+    } else {
+      _add2Engine.setValue(_parseToInt(token));
+      _currentIsPercentage = false;
+    }
+    _engineActive = true;
+  }
+
   String _buildFullExpression() {
-    final buffer = StringBuffer();
+    final parts = <String>[..._committed];
+    if (_pendingOperator != null) parts.add(_pendingOperator!);
+    if (_engineActive) parts.add(_engineToken());
 
-    for (final part in _expressionParts) {
-      if (buffer.isNotEmpty) buffer.write(' ');
-      buffer.write(part.value);
-    }
-
-    if (_currentOperator != null) {
-      buffer.write(' $_currentOperator');
-      buffer.write(' ${_add2Engine.formattedValue}');
-      if (_currentIsPercentage) buffer.write('%');
-    }
-
-    return buffer.toString();
+    return parts.join(' ');
   }
 
   int _parseToInt(String formattedValue) {
@@ -445,8 +612,6 @@ class CalculatorViewModel extends ChangeNotifier {
     return (parsed * 100).round();
   }
 
-  /// Formats a plain value (e.g., "12500.00") using the current
-  /// decimal separator and thousands grouping.
   String _formatValue(String plainValue) {
     final parsed = double.tryParse(plainValue);
     if (parsed == null) return plainValue;
@@ -458,29 +623,10 @@ class CalculatorViewModel extends ChangeNotifier {
     );
   }
 
-  /// Formats a full plain expression (e.g., "12500.00 + 3500.00" or
-  /// "100.00 + 10.00%") by formatting each numeric token while preserving
-  /// any trailing literal `%` suffix.
   String _formatExpression(String plainExpression) {
     final tokens = plainExpression.split(' ');
-    final formatted = tokens.map((token) {
-      if (_isOperator(token)) return token;
-
-      if (token.endsWith('%')) {
-        final numeric = token.substring(0, token.length - 1);
-
-        return '${_formatValue(numeric)}%';
-      }
-
-      return _formatValue(token);
-    });
+    final formatted = tokens.map(_formatPart);
 
     return formatted.join(' ');
   }
-}
-
-class _ExpressionPart {
-  final String value;
-
-  const _ExpressionPart(this.value);
 }

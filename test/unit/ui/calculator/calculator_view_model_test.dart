@@ -649,6 +649,296 @@ void main() {
 
         expect(notified, true);
       });
+
+      test('should remove a closing parenthesis without resetting engine', () {
+        viewModel.inputParenthesis(); // (
+        viewModel.inputDigit('1');
+        viewModel.inputDigit('2');
+        viewModel.inputDigit('5');
+        viewModel.inputDigit('0');
+        viewModel.setOperator('+');
+        viewModel.inputDigit('3');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.inputParenthesis(); // ) → committed: ( 12.50 + 3.00 )
+
+        expect(viewModel.fullDisplayText, '( 12.50 + 3.00 )');
+        expect(viewModel.openParenCount, 0);
+
+        viewModel.backspace();
+
+        expect(viewModel.fullDisplayText, '( 12.50 + 3.00');
+        expect(viewModel.openParenCount, 1);
+      });
+
+      test(
+        'should remove an opening parenthesis when it is the last token',
+        () {
+          viewModel.inputParenthesis(); // (
+
+          expect(viewModel.openParenCount, 1);
+
+          viewModel.backspace();
+
+          expect(viewModel.openParenCount, 0);
+          expect(viewModel.hasContent, false);
+        },
+      );
+
+      test('should remove an opening parenthesis preceded by an operator '
+          'and restore the previous operand for editing', () {
+        viewModel.inputDigit('1');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.setOperator('+');
+        viewModel.inputParenthesis(); // (
+
+        expect(viewModel.fullDisplayText, '10.00 + (');
+
+        viewModel.backspace(); // remove (
+
+        expect(viewModel.fullDisplayText, '10.00 +');
+
+        viewModel.backspace(); // remove +
+
+        expect(viewModel.fullDisplayText, '10.00');
+        expect(viewModel.currentOperator, isNull);
+      });
+
+      test('should not replace opening parenthesis with 0.00 when backspacing '
+          'a complex expression', () {
+        // 4.25 + (36.00 × 2.00) + 3.65
+        viewModel.inputDigit('4');
+        viewModel.inputDigit('2');
+        viewModel.inputDigit('5');
+        viewModel.setOperator('+');
+        viewModel.inputParenthesis();
+
+        viewModel.inputDigit('3');
+        viewModel.inputDigit('6');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.setOperator('×');
+
+        viewModel.inputDigit('2');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.inputParenthesis();
+        viewModel.setOperator('+');
+
+        viewModel.inputDigit('3');
+        viewModel.inputDigit('6');
+        viewModel.inputDigit('5');
+
+        // Remove 3.65
+        viewModel.backspace();
+        viewModel.backspace();
+        viewModel.backspace();
+
+        // Remove trailing + and then )
+        viewModel.backspace();
+        viewModel.backspace();
+
+        // Remove 2.00 and operator ×
+        viewModel.backspace();
+        viewModel.backspace();
+        viewModel.backspace();
+        viewModel.backspace();
+
+        // Remove 36.00
+        viewModel.backspace();
+        viewModel.backspace();
+        viewModel.backspace();
+        viewModel.backspace();
+
+        expect(viewModel.fullDisplayText, '4.25 + (');
+
+        viewModel.backspace();
+
+        expect(viewModel.fullDisplayText, '4.25 +');
+      });
+
+      test('should remove pending operator after closed parenthesis without '
+          'adding ghost 0.00', () {
+        // (10.00 × 50.00) +
+        viewModel.inputParenthesis();
+        viewModel.inputDigit('1');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.setOperator('×');
+        viewModel.inputDigit('5');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.inputParenthesis();
+        viewModel.setOperator('+');
+
+        expect(viewModel.fullDisplayText, '( 10.00 × 50.00 ) +');
+
+        viewModel.backspace();
+
+        expect(viewModel.currentOperator, isNull);
+        expect(viewModel.fullDisplayText, '( 10.00 × 50.00 )');
+      });
+
+      test('should keep closing parenthesis when deleting a trailing operator '
+          'in a nested expression', () {
+        // (2.50 + 2.56) × 3.00 +
+        viewModel.inputParenthesis();
+        viewModel.inputDigit('2');
+        viewModel.inputDigit('5');
+        viewModel.inputDigit('0');
+        viewModel.setOperator('+');
+        viewModel.inputDigit('2');
+        viewModel.inputDigit('5');
+        viewModel.inputDigit('6');
+        viewModel.inputParenthesis();
+        viewModel.setOperator('×');
+        viewModel.inputDigit('3');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.setOperator('+');
+
+        expect(viewModel.fullDisplayText, '( 2.50 + 2.56 ) × 3.00 +');
+
+        viewModel.backspace();
+
+        expect(viewModel.fullDisplayText, '( 2.50 + 2.56 ) × 3.00');
+        expect(viewModel.currentOperator, isNull);
+      });
+
+      test(
+        'should remove only one closing paren at a time in nested close-close sequence',
+        () {
+          // (10.00 × 50.00) + 30.00 + (48.00 ÷ (18.00 × 1.50%)) +
+          viewModel.inputParenthesis();
+          viewModel.inputDigit('1');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.setOperator('×');
+          viewModel.inputDigit('5');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.inputParenthesis();
+          viewModel.setOperator('+');
+
+          viewModel.inputDigit('3');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.setOperator('+');
+
+          viewModel.inputParenthesis();
+          viewModel.inputDigit('4');
+          viewModel.inputDigit('8');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.setOperator('÷');
+
+          viewModel.inputParenthesis();
+          viewModel.inputDigit('1');
+          viewModel.inputDigit('8');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.setOperator('×');
+          viewModel.inputDigit('1');
+          viewModel.inputDigit('5');
+          viewModel.inputDigit('0');
+          viewModel.applyPercentage();
+          viewModel.inputParenthesis();
+          viewModel.inputParenthesis();
+          viewModel.setOperator('+');
+
+          expect(
+            viewModel.fullDisplayText,
+            '( 10.00 × 50.00 ) + 30.00 + ( 48.00 ÷ ( 18.00 × 1.50% ) ) +',
+          );
+
+          viewModel.backspace(); // remove trailing +
+          expect(
+            viewModel.fullDisplayText,
+            '( 10.00 × 50.00 ) + 30.00 + ( 48.00 ÷ ( 18.00 × 1.50% ) )',
+          );
+
+          viewModel.backspace(); // remove only the last )
+          expect(
+            viewModel.fullDisplayText,
+            '( 10.00 × 50.00 ) + 30.00 + ( 48.00 ÷ ( 18.00 × 1.50% )',
+          );
+          expect(viewModel.fullDisplayText.contains('% 0.00'), isFalse);
+          expect(viewModel.openParenCount, 1);
+        },
+      );
+
+      test(
+        'should backspace into the inner expression after removing close paren',
+        () {
+          viewModel.inputParenthesis(); // (
+          viewModel.inputDigit('1');
+          viewModel.inputDigit('2');
+          viewModel.inputDigit('5');
+          viewModel.inputDigit('0');
+          viewModel.inputParenthesis(); // ) → ( 12.50 )
+
+          viewModel.backspace(); // remove )
+          viewModel.backspace(); // remove last digit of 12.50
+
+          expect(viewModel.fullDisplayText, '( 1.25');
+        },
+      );
+
+      test('should not leave a dangling operator with 0.00 when engine empties '
+          'after restoring an operand from a closed parenthesis', () {
+        viewModel.inputParenthesis(); // (
+        viewModel.inputDigit('3');
+        viewModel.inputDigit('2');
+        viewModel.inputDigit('6');
+        viewModel.setOperator('−');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('4');
+        viewModel.inputParenthesis(); // ) → ( 3.26 − 0.04 )
+
+        viewModel.backspace(); // remove )
+        viewModel.backspace(); // 0.04 → 0.00 (empty)
+
+        // Display must not include a trailing 0.00 ghost value.
+        expect(viewModel.fullDisplayText, '( 3.26 −');
+        expect(viewModel.currentOperator, '−');
+      });
+
+      test('should promote dangling operator back to pending when deleting '
+          'all digits of the right-hand operand', () {
+        viewModel.inputDigit('1');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.setOperator('+');
+        viewModel.inputDigit('5');
+        viewModel.setOperator('−'); // commits '+' and '0.05', pending = '−'
+        viewModel.inputDigit('2');
+        // committed: [1.00, +, 0.05], pendingOp: −, engine: 0.02
+        viewModel.backspace(); // 0.02 → 0.00 (empty)
+
+        // After clearing the active operand, we should still display the
+        // pending operator without an extra 0.00 token.
+        expect(viewModel.fullDisplayText, '1.00 + 0.05 −');
+      });
+    });
+
+    group('clear with empty state', () {
+      test('should be a no-op when there is nothing to clear', () {
+        var notified = false;
+        viewModel.addListener(() => notified = true);
+
+        viewModel.clear();
+
+        expect(notified, false);
+        expect(viewModel.hasContent, false);
+        expect(viewModel.currentDisplayValue, '0.00');
+      });
     });
 
     group('timeline', () {
@@ -992,6 +1282,246 @@ void main() {
           expect(viewModel.timelineEntries.first.result, '0.25');
         },
       );
+    });
+
+    group('hasContent', () {
+      test('should be false in initial state', () {
+        expect(viewModel.hasContent, isFalse);
+      });
+
+      test('should be true when a digit is entered', () {
+        viewModel.inputDigit('5');
+
+        expect(viewModel.hasContent, isTrue);
+      });
+
+      test('should be true when operator is pressed after a value', () {
+        viewModel.inputDigit('5');
+        viewModel.setOperator('+');
+
+        expect(viewModel.hasContent, isTrue);
+      });
+
+      test('should be false after clear', () {
+        viewModel.inputDigit('5');
+        viewModel.setOperator('+');
+        viewModel.inputDigit('3');
+        viewModel.clear();
+
+        expect(viewModel.hasContent, isFalse);
+      });
+
+      test('should be true after equals (timeline has entries)', () {
+        when(
+          () => mockHistoryRepository.add(any()),
+        ).thenAnswer((_) async => HistoryFixtures.entry1);
+
+        viewModel.inputDigit('5');
+        viewModel.setOperator('+');
+        viewModel.inputDigit('3');
+        viewModel.equals();
+
+        expect(viewModel.hasContent, isTrue);
+      });
+
+      test('should be true after opening a parenthesis', () {
+        viewModel.inputParenthesis();
+
+        expect(viewModel.hasContent, isTrue);
+      });
+
+      test('should notify listeners when content state changes', () {
+        var notified = false;
+        viewModel.addListener(() => notified = true);
+        viewModel.inputDigit('1');
+
+        expect(notified, isTrue);
+        expect(viewModel.hasContent, isTrue);
+      });
+    });
+
+    group('parentheses', () {
+      test('should have openParenCount 0 initially', () {
+        expect(viewModel.openParenCount, 0);
+      });
+
+      test('should open parenthesis at start of expression', () {
+        viewModel.inputParenthesis();
+
+        expect(viewModel.openParenCount, 1);
+        expect(viewModel.expression, '(');
+      });
+
+      test('should accept digits inside parentheses', () {
+        viewModel.inputParenthesis();
+        viewModel.inputDigit('5');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+
+        expect(viewModel.currentDisplayValue, '5.00');
+        expect(viewModel.fullDisplayText, '( 5.00');
+      });
+
+      test('should close parenthesis when balanced and last is value', () {
+        viewModel.inputParenthesis();
+        viewModel.inputDigit('5');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.setOperator('+');
+        viewModel.inputDigit('3');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.inputParenthesis();
+
+        expect(viewModel.openParenCount, 0);
+        expect(viewModel.expression, '( 5.00 + 3.00 )');
+      });
+
+      test('should evaluate parenthesized expression on equals', () {
+        when(
+          () => mockHistoryRepository.add(any()),
+        ).thenAnswer((_) async => HistoryFixtures.entry1);
+
+        // (5.00 + 3.00) × 2.00 = 16.00
+        viewModel.inputParenthesis();
+        viewModel.inputDigit('5');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.setOperator('+');
+        viewModel.inputDigit('3');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.inputParenthesis();
+        viewModel.setOperator('×');
+        viewModel.inputDigit('2');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.equals();
+
+        expect(viewModel.timelineEntries, hasLength(1));
+        expect(viewModel.timelineEntries.first.result, '16.00');
+      });
+
+      test('should support nested parentheses', () {
+        when(
+          () => mockHistoryRepository.add(any()),
+        ).thenAnswer((_) async => HistoryFixtures.entry1);
+
+        // (10.00 × (2.00 + 3.00)) = 50.00
+        viewModel.inputParenthesis();
+        viewModel.inputDigit('1');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.setOperator('×');
+        viewModel.inputParenthesis();
+
+        expect(viewModel.openParenCount, 2);
+
+        viewModel.inputDigit('2');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.setOperator('+');
+        viewModel.inputDigit('3');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.inputParenthesis();
+        viewModel.inputParenthesis();
+
+        expect(viewModel.openParenCount, 0);
+        viewModel.equals();
+
+        expect(viewModel.timelineEntries.first.result, '50.00');
+      });
+
+      test('should auto-close unbalanced parentheses on equals', () {
+        when(
+          () => mockHistoryRepository.add(any()),
+        ).thenAnswer((_) async => HistoryFixtures.entry1);
+
+        // ( 5.00 + 3.00  → equals should auto-close → 8.00
+        viewModel.inputParenthesis();
+        viewModel.inputDigit('5');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.setOperator('+');
+        viewModel.inputDigit('3');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.equals();
+
+        expect(viewModel.timelineEntries.first.result, '8.00');
+      });
+
+      test('should open parenthesis after operator', () {
+        viewModel.inputDigit('5');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.setOperator('+');
+        viewModel.inputParenthesis();
+
+        expect(viewModel.openParenCount, 1);
+        expect(viewModel.expression, '5.00 + (');
+      });
+
+      test('should not open parenthesis after a value (without operator)', () {
+        viewModel.inputDigit('5');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.inputParenthesis();
+
+        // Should be ignored — no implicit multiplication
+        expect(viewModel.openParenCount, 0);
+        expect(viewModel.expression, '');
+      });
+
+      test(
+        'should support continuing operations after closing parenthesis',
+        () {
+          when(
+            () => mockHistoryRepository.add(any()),
+          ).thenAnswer((_) async => HistoryFixtures.entry1);
+
+          // (2.00 + 3.00) × 4.00 = 20.00
+          viewModel.inputParenthesis();
+          viewModel.inputDigit('2');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.setOperator('+');
+          viewModel.inputDigit('3');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.inputParenthesis();
+          viewModel.setOperator('×');
+          viewModel.inputDigit('4');
+          viewModel.inputDigit('0');
+          viewModel.inputDigit('0');
+          viewModel.equals();
+
+          expect(viewModel.timelineEntries.first.result, '20.00');
+        },
+      );
+
+      test('should preserve open paren expression in fullDisplayText', () {
+        viewModel.inputDigit('5');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+        viewModel.setOperator('+');
+        viewModel.inputParenthesis();
+        viewModel.inputDigit('2');
+        viewModel.inputDigit('0');
+        viewModel.inputDigit('0');
+
+        expect(viewModel.fullDisplayText, '5.00 + ( 2.00');
+      });
+
+      test('should notify listeners when parenthesis is inserted', () {
+        var notified = false;
+        viewModel.addListener(() => notified = true);
+        viewModel.inputParenthesis();
+
+        expect(notified, isTrue);
+      });
     });
   });
 }

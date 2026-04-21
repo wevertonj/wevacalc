@@ -30,7 +30,7 @@ Registro de todas as alterações realizadas no projeto, organizado por etapa.
 ### Internacionalização
 
 - `l10n.yaml` configurado com output em `lib/utils/l10n/`
-- ARBs criados: `app_en.arb`, `app_pt.arb`, `app_pt_BR.arb`, `app_es.arb`
+- ARBs criados: `app_en.arb`, `app_pt_BR.arb`, `app_es.arb`
 - Extension `context.l10n` em `lib/utils/extensions/l10n_extension.dart`
 - Strings iniciais: `appTitle`, `calculator`, `history`, `settings`
 
@@ -272,68 +272,6 @@ Registro de todas as alterações realizadas no projeto, organizado por etapa.
 
 ---
 
-## [Concluída] Etapa 6 — Exibição literal da porcentagem
-
-### CalculatorViewModel
-
-- Novo flag interno `_currentIsPercentage` indica que o operando atual está marcado como porcentagem literal
-- `applyPercentage()` agora **não modifica** o valor do `Add2Engine` — apenas ativa o flag de porcentagem
-  - Pré-condições: existe operador, há valor digitado, ainda não foi aplicado `%`
-- `setOperator()` ao acumular o operando atual, anexa o sufixo `%` quando o flag está ativo
-- `inputDigit/inputDoubleZero/inputTripleZero` (refatorados para `_prepareForDigitInput`): digitar após `%` cancela o flag e inicia novo valor para o mesmo operando
-- `backspace()` remove primeiro o flag `%` (se ativo); ao restaurar partes anteriores, detecta sufixo `%` e reativa o flag
-- `equals()`, `clear()` e `loadSession()` resetam o flag de porcentagem
-- `_buildFullExpression()` anexa `%` ao valor atual quando flag ativo (para o evaluator)
-- `_formatExpression()` e novo helper `_formatPart()` preservam o sufixo `%` literal ao formatar tokens (ex: `100.00 + 10.00%`)
-- `fullDisplayText` exibe `%` literal grudado ao valor atual quando aplicável
-
-### ExpressionEvaluator
-
-- Sem alterações de código — o tokenizer já separava o caractere `%` automaticamente, então `10.00%` (sem espaço) é tokenizado igual a `10.00 %`
-- Comportamento contextual de porcentagem mantido: `+/−` calcula percentual sobre o operando anterior; `×/÷` converte para fração
-
-### Histórico
-
-- A expressão persistida em `HistoryEntry` preserva o `%` literal (ex: `100.00 + 10.00%`)
-- `loadSession` formata corretamente expressões persistidas com `%`
-
-### Testes
-
-- `calculator_view_model_test.dart` — grupo `percentage` reescrito com 8 testes (display literal em +, −, ×, ÷; sem operador; persistência no timeline; persistência no repository; encadeamento)
-- `expression_evaluator_test.dart` — grupo `percentage` ampliado com 5 testes adicionais para `%` literal sem espaço (+, −, ×, ÷, encadeado)
-- **Total novos: 13 testes — Total geral: 349 testes — 100% verde**
-- `flutter analyze` — zero issues
-
----
-
-## [Concluída] Etapa 7 — Fila de processamento de toques (anti-perda em digitação rápida)
-
-### CalculatorButton
-
-- `onPressed` despachado no `onTapDown` (antes era no `onTap`/`tapUp`) — elimina a latência do reconhecedor de gestos e garante que o toque seja registrado **imediatamente** quando o dedo encosta no botão
-- Animações (LED glow, background flash) permanecem nos handlers `tapDown`/`tapUp` e são **independentes** do despacho da ação
-- `_handleTap` mantido como no-op para preservar a assinatura do `GestureDetector`
-- Comportamento: tocar e arrastar para fora ainda dispara a ação (intencional — toda tecla pressionada conta)
-
-### CalculatorViewModel
-
-- Nova fila de ações `Queue<VoidCallback> _actionQueue` + flag `_isProcessingActions`
-- Novo método privado `_runAction(action)`:
-  - Se já existe ação em execução (cenário de reentrância síncrona via `notifyListeners`), enfileira e retorna
-  - Caso contrário, marca como processando, executa a ação atual e drena a fila enquanto houver pendências, garantindo a ordem
-- Métodos públicos do usuário envolvidos em `_runAction`: `inputDigit`, `inputDoubleZero`, `inputTripleZero`, `setOperator`, `applyPercentage`, `equals`, `clear`, `backspace`
-- Nenhum `debounce`/`throttle` em qualquer ponto do pipeline
-
-### Testes
-
-- `calculator_view_model_test.dart` — novo grupo `action queue` com 4 testes (50 ações em rajada sem perda, ordem preservada em sequência mista, reentrância via listener síncrono, soma de 25× `1 +`)
-- `calculator_keypad_test.dart` — novo grupo `rapid input` com 2 testes (rajada de dígitos sem `pumpAndSettle`, rajada mista de operadores+dígitos)
-- `calculator_button_test.dart` — novo grupo `responsiveness` com 2 testes (`onPressed` no tap down via `startGesture`, 3 toques durante animação de glow são todos registrados)
-- **Total novos: 8 testes — Total geral: 357 testes — 100% verde**
-- `flutter analyze` — zero issues
-
----
-
 ## [Concluída] Etapa 5 — UI da Calculadora
 
 ### Design System — Atualização de Cores
@@ -380,7 +318,7 @@ Registro de todas as alterações realizadas no projeto, organizado por etapa.
 
 ### Internacionalização
 
-- Novas strings nos 4 ARBs: `loadMore`, `clear`, `backspace`, `equals`, `percent`
+- Novas strings nos 3 ARBs: `loadMore`, `clear`, `backspace`, `equals`, `percent`
 
 ### Infraestrutura de Testes
 
@@ -449,15 +387,137 @@ Widget customizado que substituiu o `TextField` padrão no display da calculador
 
 ---
 
-## [Não iniciado] Etapa 6 — Exibição literal da porcentagem
+## [Concluída] Etapa 6 — Exibição literal da porcentagem
+
+### CalculatorViewModel
+
+- Novo flag interno `_currentIsPercentage` indica que o operando atual está marcado como porcentagem literal
+- `applyPercentage()` agora **não modifica** o valor do `Add2Engine` — apenas ativa o flag de porcentagem
+  - Pré-condições: existe operador, há valor digitado, ainda não foi aplicado `%`
+- `setOperator()` ao acumular o operando atual, anexa o sufixo `%` quando o flag está ativo
+- `inputDigit/inputDoubleZero/inputTripleZero` (refatorados para `_prepareForDigitInput`): digitar após `%` cancela o flag e inicia novo valor para o mesmo operando
+- `backspace()` remove primeiro o flag `%` (se ativo); ao restaurar partes anteriores, detecta sufixo `%` e reativa o flag
+- `equals()`, `clear()` e `loadSession()` resetam o flag de porcentagem
+- `_buildFullExpression()` anexa `%` ao valor atual quando flag ativo (para o evaluator)
+- `_formatExpression()` e novo helper `_formatPart()` preservam o sufixo `%` literal ao formatar tokens (ex: `100.00 + 10.00%`)
+- `fullDisplayText` exibe `%` literal grudado ao valor atual quando aplicável
+
+### ExpressionEvaluator
+
+- Sem alterações de código — o tokenizer já separava o caractere `%` automaticamente, então `10.00%` (sem espaço) é tokenizado igual a `10.00 %`
+- Comportamento contextual de porcentagem mantido: `+/−` calcula percentual sobre o operando anterior; `×/÷` converte para fração
+
+### Histórico
+
+- A expressão persistida em `HistoryEntry` preserva o `%` literal (ex: `100.00 + 10.00%`)
+- `loadSession` formata corretamente expressões persistidas com `%`
+
+### Testes
+
+- `calculator_view_model_test.dart` — grupo `percentage` reescrito com 8 testes (display literal em +, −, ×, ÷; sem operador; persistência no timeline; persistência no repository; encadeamento)
+- `expression_evaluator_test.dart` — grupo `percentage` ampliado com 5 testes adicionais para `%` literal sem espaço (+, −, ×, ÷, encadeado)
+- **Total novos: 13 testes — Total geral: 349 testes — 100% verde**
+- `flutter analyze` — zero issues
 
 ---
 
-## [Não iniciado] Etapa 7 — Fila de processamento de toques (anti-perda em digitação rápida)
+## [Concluída] Etapa 7 — Fila de processamento de toques (anti-perda em digitação rápida)
+
+### CalculatorButton
+
+- `onPressed` despachado no `onTapDown` (antes era no `onTap`/`tapUp`) — elimina a latência do reconhecedor de gestos e garante que o toque seja registrado **imediatamente** quando o dedo encosta no botão
+- Animações (LED glow, background flash) permanecem nos handlers `tapDown`/`tapUp` e são **independentes** do despacho da ação
+- `_handleTap` mantido como no-op para preservar a assinatura do `GestureDetector`
+- Comportamento: tocar e arrastar para fora ainda dispara a ação (intencional — toda tecla pressionada conta)
+
+### CalculatorViewModel
+
+- Nova fila de ações `Queue<VoidCallback> _actionQueue` + flag `_isProcessingActions`
+- Novo método privado `_runAction(action)`:
+  - Se já existe ação em execução (cenário de reentrância síncrona via `notifyListeners`), enfileira e retorna
+  - Caso contrário, marca como processando, executa a ação atual e drena a fila enquanto houver pendências, garantindo a ordem
+- Métodos públicos do usuário envolvidos em `_runAction`: `inputDigit`, `inputDoubleZero`, `inputTripleZero`, `setOperator`, `applyPercentage`, `equals`, `clear`, `backspace`
+- Nenhum `debounce`/`throttle` em qualquer ponto do pipeline
+
+### Testes
+
+- `calculator_view_model_test.dart` — novo grupo `action queue` com 4 testes (50 ações em rajada sem perda, ordem preservada em sequência mista, reentrância via listener síncrono, soma de 25× `1 +`)
+- `calculator_keypad_test.dart` — novo grupo `rapid input` com 2 testes (rajada de dígitos sem `pumpAndSettle`, rajada mista de operadores+dígitos)
+- `calculator_button_test.dart` — novo grupo `responsiveness` com 2 testes (`onPressed` no tap down via `startGesture`, 3 toques durante animação de glow são todos registrados)
+- **Total novos: 8 testes — Total geral: 357 testes — 100% verde**
+- `flutter analyze` — zero issues
 
 ---
 
-## [Não iniciado] Etapa 8 — Reorganização do keypad: delete contextual e parênteses
+## [Concluída] Etapa 8 — Reorganização do keypad: delete contextual e parênteses
+
+### Ajuste pós-implementação — Botão de apagar (`⌫`) na barra de ícones
+
+- Botão `⌫` adicionado à barra de ícones (entre ⏱ e ⚙) — restaura a função de apagar último caractere após a remoção do `⌫` do keypad
+- Cor contextual animada: `onSurface` com alpha 0.5 quando não há conteúdo; `primary` (mesma cor dos operadores) quando há conteúdo
+- Transição via `TweenAnimationBuilder<Color?>` com `Curves.fastOutSlowIn` (280ms)
+- `onPressed` desativado (null) quando dimmed
+- Aciona `CalculatorViewModel.backspace`
+- 4 novos testes em `calculator_page_test.dart` (presença, dimmed inicial, primary com conteúdo, ação de apagar)
+- **Total: 398 testes — 100% verde**
+
+### ExpressionEvaluator (`lib/domain/expression_evaluator.dart`)
+
+- Tokenizer reconhece `(` e `)` como tokens próprios
+- Novo método `_resolveParens()` resolve sub-expressões parentizadas recursivamente do interior para o exterior
+  - Encontra a innermost paren (último `(` antes do primeiro `)`), avalia o miolo e substitui por seu resultado
+  - Suporte a aninhamento ilimitado
+  - Validação ergonômica de erros: parênteses desbalanceados (abertos ou fechados sozinhos) e parênteses vazios retornam `null`
+- Resolução de porcentagem agora preserva precisão completa (não passa pelo formatador de 2 casas) — corrige cálculos como `1.5%` que antes perdiam precisão
+- Resultados intermediários de parênteses também preservam precisão antes de serem reinjetados na expressão pai
+- Validação inicial atualizada: primeiro token pode ser `(` (além de número)
+
+### CalculatorViewModel (`lib/ui/calculator/calculator_view_model.dart`)
+
+- **Modelo de estado refatorado** para suportar parênteses como tokens de primeira classe
+  - Antes: `_expressionParts` em pares value/operator
+  - Agora: `_committed` lista plana de tokens (números, operadores, `(`, `)`) + `_pendingOperator` + `_engineActive`
+- Novo método `inputParenthesis()` com toggle inteligente:
+  - Insere `(` no início, após operador, ou após outro `(`
+  - Insere `)` quando há `(` pendente E o último token é um operando completo (número, `%`, `)`)
+  - Após `)`, dígitos são ignorados (sem multiplicação implícita) — usuário precisa pressionar operador primeiro
+- Novo getter `openParenCount` — conta `(` menos `)` no expression committed
+- Novo getter `hasContent` — true quando há qualquer conteúdo cancelável (committed, operando ativo, operador pendente, timeline com entradas, ou resultado pós-`=`)
+- `equals()` agora auto-fecha parênteses não balanceados antes de avaliar
+- `backspace()` reescrito para o novo modelo (preservado para uso futuro, sem botão na UI)
+- Comportamento existente preservado: prévia de resultado, percentage literal, fila de ações, formatação com separador de milhar
+
+### CalculatorButton (`lib/ui/calculator/widgets/calculator_button.dart`)
+
+- Novo parâmetro `isDimmed: bool` (default false) para variante `functional`
+- Quando `isDimmed = true`: cor `onSurface` com alpha 0.5 (mesma dos ícones de ação na barra)
+- Quando `isDimmed = false`: cor `primary` (operadores)
+- Transição animada via `TweenAnimationBuilder<double>` com curve `Curves.fastOutSlowIn` (280ms)
+
+### CalculatorKeypad (`lib/ui/calculator/widgets/calculator_keypad.dart`)
+
+- Removido botão `⌫` (backspace)
+- Adicionado botão `( )` no slot antigo do `⌫`
+- Botão `C` agora recebe `clearIsDimmed` para colorir contextualmente
+- Assinatura atualizada: `onBackspace` removido, `onParenthesis` adicionado, `clearIsDimmed` adicionado
+
+### CalculatorPage (`lib/ui/calculator/calculator_page.dart`)
+
+- Wiring atualizado: `onParenthesis: vm.inputParenthesis`, `clearIsDimmed: !vm.hasContent`
+
+### Internacionalização
+
+- Novas chaves ARB: `clearAll` e `parenthesis` (en, pt_BR, es)
+
+### Testes
+
+- `expression_evaluator_test.dart` — 12 testes novos (parênteses simples, aninhados, deeply nested, com %, sem espaços, paren com `%` interno, desbalanceados, vazios, sequenciais)
+- `calculator_view_model_test.dart` — 19 testes novos (`hasContent` em vários estados, `openParenCount`, `inputParenthesis` em vários contextos, equals com parênteses, auto-close, nested)
+- `calculator_keypad_test.dart` — reescrito com helper `buildKeypad`, novos testes para `( )`, ausência do `⌫`, propagação de `clearIsDimmed`
+- `calculator_button_test.dart` — novo grupo `isDimmed` (default e animação para primary)
+- `calculator_page_test.dart` — substituído teste de backspace por testes de parênteses via teclado e cor contextual do `C`
+- **Total: 394 testes — 100% verde**
+- `flutter analyze` — zero issues
 
 ---
 

@@ -81,7 +81,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
                 onOperator: vm.setOperator,
                 onEquals: vm.equals,
                 onClear: vm.clear,
-                onBackspace: vm.backspace,
+                onParenthesis: vm.inputParenthesis,
                 onPercent: vm.applyPercentage,
                 onDoubleZero: vm.inputDoubleZero,
                 onTripleZero: vm.inputTripleZero,
@@ -100,29 +100,40 @@ class _CalculatorPageState extends State<CalculatorPage> {
       ),
     );
 
+    final dimmedColor = colors.onSurface.withValues(alpha: 0.5);
+    final activeColor = colors.primary;
+    final hasContent = widget.viewModel.hasContent;
+    final backspaceColor = hasContent ? activeColor : dimmedColor;
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: AppLayout.padding.large),
       child: Row(
         children: [
           IconButton(
             style: iconStyle,
-            icon: Icon(
-              Icons.history_rounded,
-              color: colors.onSurface.withValues(alpha: 0.5),
-            ),
+            icon: Icon(Icons.history_rounded, color: dimmedColor),
             onPressed: () {
-              // Navigation will be connected in Etapa 6
+              // Navigation will be connected in Etapa 9
+            },
+          ),
+          IconButton(
+            style: iconStyle,
+            icon: Icon(Icons.settings_rounded, color: dimmedColor),
+            onPressed: () {
+              // Navigation will be connected in Etapa 9
             },
           ),
           const Spacer(),
-          IconButton(
-            style: iconStyle,
-            icon: Icon(
-              Icons.settings_rounded,
-              color: colors.onSurface.withValues(alpha: 0.5),
-            ),
-            onPressed: () {
-              // Navigation will be connected in Etapa 6
+          TweenAnimationBuilder<Color?>(
+            tween: ColorTween(end: backspaceColor),
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.fastOutSlowIn,
+            builder: (context, color, _) {
+              return IconButton(
+                style: iconStyle,
+                icon: Icon(Icons.backspace_rounded, color: color),
+                onPressed: hasContent ? widget.viewModel.backspace : null,
+              );
             },
           ),
         ],

@@ -7,6 +7,7 @@ import 'package:wevacalc/domain/enums/decimal_separator.dart';
 import 'package:wevacalc/ui/calculator/calculator_page.dart';
 import 'package:wevacalc/ui/calculator/calculator_view_model.dart';
 import 'package:wevacalc/ui/calculator/widgets/animated_input_display.dart';
+import 'package:wevacalc/ui/calculator/widgets/calculator_button.dart';
 import 'package:wevacalc/ui/calculator/widgets/calculator_keypad.dart';
 import 'package:wevacalc/ui/calculator/widgets/timeline_display.dart';
 
@@ -76,6 +77,66 @@ void main() {
         expect(find.byIcon(Icons.history_rounded), findsOneWidget);
         expect(find.byIcon(Icons.settings_rounded), findsOneWidget);
       });
+
+      testWidgets('should display backspace icon in icon bar', (tester) async {
+        await tester.pumpApp(CalculatorPage(viewModel: viewModel));
+
+        expect(find.byIcon(Icons.backspace_rounded), findsOneWidget);
+      });
+
+      testWidgets(
+        'should render backspace icon dimmed when there is nothing to delete',
+        (tester) async {
+          await tester.pumpApp(CalculatorPage(viewModel: viewModel));
+
+          final icon = tester.widget<Icon>(
+            find.byIcon(Icons.backspace_rounded),
+          );
+          final colors = Theme.of(
+            tester.element(find.byIcon(Icons.backspace_rounded)),
+          ).colorScheme;
+
+          expect(icon.color, equals(colors.onSurface.withValues(alpha: 0.5)));
+        },
+      );
+
+      testWidgets(
+        'should render backspace icon in primary color when there is content',
+        (tester) async {
+          await tester.pumpApp(CalculatorPage(viewModel: viewModel));
+
+          await tester.tap(find.text('5'));
+          await tester.pumpAndSettle();
+
+          final icon = tester.widget<Icon>(
+            find.byIcon(Icons.backspace_rounded),
+          );
+          final colors = Theme.of(
+            tester.element(find.byIcon(Icons.backspace_rounded)),
+          ).colorScheme;
+
+          expect(icon.color, equals(colors.primary));
+        },
+      );
+
+      testWidgets(
+        'should call viewModel.backspace when backspace icon is tapped',
+        (tester) async {
+          await tester.pumpApp(CalculatorPage(viewModel: viewModel));
+
+          await tester.tap(find.text('5'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('7'));
+          await tester.pumpAndSettle();
+
+          expect(getDisplayText(tester), equals('0.57'));
+
+          await tester.tap(find.byIcon(Icons.backspace_rounded));
+          await tester.pumpAndSettle();
+
+          expect(getDisplayText(tester), equals('0.05'));
+        },
+      );
     });
 
     group('integration', () {
@@ -157,26 +218,56 @@ void main() {
         expect(getDisplayText(tester), equals('0.00'));
       });
 
-      testWidgets('should backspace correctly', (tester) async {
+      testWidgets('should evaluate parenthesized expression via the keypad', (
+        tester,
+      ) async {
         await tester.pumpApp(CalculatorPage(viewModel: viewModel));
 
-        // Input 1250 → 12.50
-        await tester.tap(find.text('1'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('2'));
+        // ( 5.00 + 3.00 ) × 2.00 = 16.00
+        await tester.tap(find.text('( )'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('5'));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('0'));
+        await tester.tap(find.text('00'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('+'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('3'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('00'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('( )'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('×'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('2'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('00'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('='));
         await tester.pumpAndSettle();
 
-        expect(getDisplayText(tester), equals('12.50'));
+        expect(getDisplayText(tester), equals('16.00'));
+      });
 
-        // Backspace → 1.25
-        await tester.tap(find.byIcon(Icons.backspace_rounded));
+      testWidgets('should keep C active regardless of current content', (
+        tester,
+      ) async {
+        await tester.pumpApp(CalculatorPage(viewModel: viewModel));
+
+        CalculatorButton clearButton() => tester.widget<CalculatorButton>(
+          find.ancestor(
+            of: find.text('C'),
+            matching: find.byType(CalculatorButton),
+          ),
+        );
+
+        expect(clearButton().isDimmed, isFalse);
+
+        await tester.tap(find.text('5'));
         await tester.pumpAndSettle();
 
-        expect(getDisplayText(tester), equals('1.25'));
+        expect(clearButton().isDimmed, isFalse);
       });
     });
   });

@@ -34,36 +34,10 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get percent => '%';
-}
-
-/// The translations for Portuguese, as used in Brazil (`pt_BR`).
-class AppLocalizationsPtBr extends AppLocalizationsPt {
-  AppLocalizationsPtBr() : super('pt_BR');
 
   @override
-  String get appTitle => 'WevaCalc';
+  String get clearAll => 'Limpar tudo';
 
   @override
-  String get calculator => 'Calculadora';
-
-  @override
-  String get history => 'Histórico';
-
-  @override
-  String get settings => 'Configurações';
-
-  @override
-  String get loadMore => 'Carregar mais';
-
-  @override
-  String get clear => 'C';
-
-  @override
-  String get backspace => 'Apagar';
-
-  @override
-  String get equals => '=';
-
-  @override
-  String get percent => '%';
+  String get parenthesis => 'Parêntese';
 }

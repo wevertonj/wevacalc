@@ -13,12 +13,18 @@ class CalculatorButton extends StatefulWidget {
   final VoidCallback onPressed;
   final ButtonVariant variant;
 
+  /// When true, a [ButtonVariant.functional] button uses a dimmed onSurface
+  /// color instead of the primary color. The transition between states is
+  /// animated for a soft visual cue (used by the contextual `C` button).
+  final bool isDimmed;
+
   const CalculatorButton({
     super.key,
     required this.label,
     this.icon,
     required this.onPressed,
     this.variant = ButtonVariant.numeric,
+    this.isDimmed = false,
   });
 
   @override
@@ -104,38 +110,53 @@ class _CalculatorButtonState extends State<CalculatorButton>
     return colors.onSurface;
   }
 
+  /// Dimmed counterpart used when [CalculatorButton.isDimmed] is true.
+  Color _dimmedTextColor(ColorScheme colors) {
+    return colors.onSurface.withValues(alpha: 0.5);
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final baseTextColor = _baseTextColor(colors);
+    final activeBase = _baseTextColor(colors);
+    final dimmedBase = _dimmedTextColor(colors);
 
-    return GestureDetector(
-      onTapDown: _handleTapDown,
-      onTapUp: _handleTapUp,
-      onTap: _handleTap,
-      onTapCancel: _handleTapCancel,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedBuilder(
-        animation: _bgAnimation,
-        builder: (context, child) {
-          // bgAnimation: 0 = apagado, 1 = aceso (forward=in, reverse=out)
-          final bgOpacity = _bgAnimation.value * 0.12;
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(end: widget.isDimmed ? 0.0 : 1.0),
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.fastOutSlowIn,
+      builder: (context, t, _) {
+        final baseTextColor = Color.lerp(dimmedBase, activeBase, t)!;
 
-          return Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: colors.onSurface.withValues(alpha: bgOpacity),
-              borderRadius: BorderRadius.circular(AppLayout.radius.small),
-            ),
-            alignment: Alignment.center,
-            child: child,
-          );
-        },
-        child: widget.icon != null
-            ? _buildIconContent(baseTextColor)
-            : _buildTextContent(baseTextColor),
-      ),
+        return GestureDetector(
+          onTapDown: _handleTapDown,
+          onTapUp: _handleTapUp,
+          onTap: _handleTap,
+          onTapCancel: _handleTapCancel,
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedBuilder(
+            animation: _bgAnimation,
+            builder: (context, child) {
+              // bgAnimation: 0 = apagado, 1 = aceso (forward=in, reverse=out)
+              final bgOpacity = _bgAnimation.value * 0.12;
+
+              return Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: colors.onSurface.withValues(alpha: bgOpacity),
+                  borderRadius: BorderRadius.circular(AppLayout.radius.small),
+                ),
+                alignment: Alignment.center,
+                child: child,
+              );
+            },
+            child: widget.icon != null
+                ? _buildIconContent(baseTextColor)
+                : _buildTextContent(baseTextColor),
+          ),
+        );
+      },
     );
   }
 

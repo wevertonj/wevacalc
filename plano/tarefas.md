@@ -283,44 +283,44 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 
 ---
 
-## Etapa 8 — Reorganização do keypad: delete contextual e parênteses
+## Etapa 8 — Reorganização do keypad: delete contextual e parênteses ✅
 
 ### Testes PRIMEIRO (TDD Red)
 
-- [ ] Atualizar `test/unit/domain/expression_evaluator_test.dart`
+- [x] Atualizar `test/unit/domain/expression_evaluator_test.dart`
   - Cenários: parênteses simples, aninhados, com `%`, parênteses desbalanceados, parênteses vazios
-- [ ] Atualizar `test/unit/ui/calculator/calculator_view_model_test.dart`
+- [x] Atualizar `test/unit/ui/calculator/calculator_view_model_test.dart`
   - Cenários: `inputParenthesis` em diferentes estados, contador `openParenCount`, `hasContent` reativo, `clearAll`
-- [ ] Atualizar `test/widget/calculator/calculator_keypad_test.dart`
+- [x] Atualizar `test/widget/calculator/calculator_keypad_test.dart`
   - Cenários: novo layout (sem ⚙ no keypad, `C` no lugar, `( )` no lugar do `⌫`)
-- [ ] Atualizar `test/widget/calculator/calculator_button_test.dart`
+- [x] Atualizar `test/widget/calculator/calculator_button_test.dart`
   - Cenários: botão `C` muda de cor conforme `hasContent` (com animação)
-- [ ] Atualizar `test/widget/calculator/calculator_page_test.dart`
+- [x] Atualizar `test/widget/calculator/calculator_page_test.dart`
   - Cenários: barra de ícones contém ⏱ e ⚙ lado a lado
 
 ### Implementação (TDD Green)
 
-- [ ] Mover ⚙ (configurações) para a barra de ícones, ao lado do ⏱
-- [ ] Implementar botão `C` (apagar tudo) no slot antigo do ⚙
+- [x] Mover ⚙ (configurações) para a barra de ícones, ao lado do ⏱
+- [x] Implementar botão `C` (apagar tudo) no slot antigo do ⚙
   - Cor padrão quando vazio, `primary` quando há conteúdo
   - Transição animada de cor (sem mudança "seca")
-- [ ] Implementar botão `( )` no slot antigo do `⌫` com toggle inteligente
+- [x] Implementar botão `( )` no slot antigo do `⌫` com toggle inteligente
   - Insere `(` quando não há parêntese aberto pendente
   - Insere `)` quando há parêntese aberto e último token permite fechamento (número, `%`, `)`)
   - Insere novo `(` após operador
-- [ ] Adicionar `inputParenthesis()`, `openParenCount` e `hasContent` no `CalculatorViewModel`
-- [ ] Adicionar `clearAll()` no `CalculatorViewModel` (ou renomear/ajustar a ação de clear existente)
-- [ ] Estender `ExpressionEvaluator` com suporte completo a parênteses aninhados
-- [ ] Tratar parênteses não fechados ao pressionar `=` (auto-fechar ou bloquear com feedback)
-- [ ] Atualizar ARBs com strings `clearAll`, `parenthesis`
-- [ ] Garantir renderização correta dos parênteses no `TimelineDisplay` e histórico
+- [x] Adicionar `inputParenthesis()`, `openParenCount` e `hasContent` no `CalculatorViewModel`
+- [x] Adicionar `clearAll()` no `CalculatorViewModel` (ou renomear/ajustar a ação de clear existente)
+- [x] Estender `ExpressionEvaluator` com suporte completo a parênteses aninhados
+- [x] Tratar parênteses não fechados ao pressionar `=` (auto-fechar ou bloquear com feedback)
+- [x] Atualizar ARBs com strings `clearAll`, `parenthesis`
+- [x] Garantir renderização correta dos parênteses no `TimelineDisplay` e histórico
 
 ### Validação
 
-- [ ] `flutter test` — 100% verde
-- [ ] `flutter analyze` — zero warnings
-- [ ] Regressão: testes anteriores continuam verdes
-- [ ] Teste manual: expressões com parênteses aninhados funcionam (ex: `(10.00 × 50.00) + 30.00 + (48.00 ÷ (18.00 × 1.50%))`)
+- [x] `flutter test` — 100% verde (394 testes)
+- [x] `flutter analyze` — zero warnings
+- [x] Regressão: testes anteriores continuam verdes
+- [x] Teste manual: expressões com parênteses aninhados funcionam (ex: `(10.00 × 50.00) + 30.00 + (48.00 ÷ (18.00 × 1.50%))`)
 
 ---
 

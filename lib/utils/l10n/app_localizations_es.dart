@@ -34,4 +34,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get percent => '%';
+
+  @override
+  String get clearAll => 'Borrar todo';
+
+  @override
+  String get parenthesis => 'Paréntesis';
 }

@@ -35,5 +35,13 @@
   "percent": "%",
   "@percent": {
     "description": "Percent button label"
+  },
+  "clearAll": "Clear all",
+  "@clearAll": {
+    "description": "Accessibility label for the contextual C (clear all) button"
+  },
+  "parenthesis": "Parenthesis",
+  "@parenthesis": {
+    "description": "Accessibility label for the parenthesis toggle button"
   }
 }
