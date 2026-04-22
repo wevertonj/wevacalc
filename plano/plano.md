@@ -2,7 +2,7 @@
 
 ## Resumo
 
-O projeto está dividido em **11 etapas** sequenciais. As **etapas 1-4** cobrem toda a lógica de negócio, dados e infraestrutura (sem UI). As **etapas 5-8** cobrem a UI da calculadora e ajustes de comportamento (porcentagem, fila de toques e parênteses + delete). As **etapas 9-10** cobrem demais telas, integração e polimento. A **etapa 11** é um item futuro (cursor editável no display). Cada etapa cabe na janela de contexto de 172k tokens. Todas seguem o fluxo TDD obrigatório (Red → Green → Refactor).
+O projeto está dividido em **12 etapas** sequenciais. As **etapas 1-4** cobrem toda a lógica de negócio, dados e infraestrutura (sem UI). As **etapas 5-8** cobrem a UI da calculadora e ajustes de comportamento (porcentagem, fila de toques e parênteses + delete). As **etapas 9-10** cobrem demais telas, integração e polimento. A **etapa 11** adiciona suporte a copiar e colar via menu de contexto. A **etapa 12** é um item futuro (cursor editável no display). Cada etapa cabe na janela de contexto de 172k tokens. Todas seguem o fluxo TDD obrigatório (Red → Green → Refactor).
 
 ---
 
@@ -390,6 +390,57 @@ O projeto está dividido em **11 etapas** sequenciais. As **etapas 1-4** cobrem 
 
 ---
 
+## Etapa 11 — Copiar e Colar
+
+**Objetivo**: Implementar suporte a copiar e colar no display da calculadora via menu de contexto ativado por toque longo.
+
+**Escopo**:
+
+- **Menu de contexto (toque longo no display)**:
+  - Toque longo sobre o display abre um menu de contexto com animação suave
+  - Opções exibidas condicionalmente conforme o estado da calculadora:
+    - **Copiar cálculo** — visível quando há expressão na entrada atual ou na timeline
+    - **Copiar resultado** — visível quando há um resultado/prévia calculado
+    - **Copiar histórico** — visível quando há entradas na timeline da sessão
+    - **Colar** — sempre visível; desabilitado se a área de transferência estiver vazia ou inválida
+
+- **Copiar cálculo**: copia a expressão atual (ex: `1000.00 + 10.00%`) para a área de transferência
+- **Copiar resultado**: copia o resultado ou a prévia atual (ex: `1100.00`) para a área de transferência
+- **Copiar histórico**: copia todas as entradas da timeline da sessão formatadas como texto
+
+- **Colar**:
+  - Lê o conteúdo da área de transferência
+  - Valida se é um número ou expressão matemática válida (inteiros, decimais com ponto ou vírgula, operadores básicos)
+  - Se válido: insere na calculadora convertendo inteiros automaticamente para Add2 (ex: `1250` → `12.50`, `12.5` → `12.50`)
+  - Se inválido: exibe snackbar com mensagem de erro via `context.l10n.*`
+
+- **`ClipboardService`** (`lib/data/services/clipboard_service.dart`):
+  - Interface + implementação que encapsulam o `Clipboard` do Flutter
+  - Permite mock nos testes sem dependência direta do widget
+  - Registrada no GetIt
+
+- **Validação de entrada colada** (lógica em `CalculatorViewModel`):
+  - Suporte a: inteiros (`1250`), decimais com ponto (`12.50`), decimais com vírgula (`12,50`)
+  - Suporte a expressões simples (`10 + 5`, `100 × 3`, `1.000,00 + 50`)
+  - Normalização: separadores de milhar ignorados, vírgula convertida para ponto antes de processar
+  - Números inteiros colados: convertidos via Add2 (sem ponto → 2 casas decimais automáticas)
+  - Números com casas decimais: inseridos diretamente com as casas preservadas
+
+**Testes**:
+
+- Unitários: `CalculatorViewModel` — colar número inteiro (conversão Add2), colar decimal com ponto, colar decimal com vírgula, colar expressão válida, colar texto inválido (gera erro), colar quando display está vazio
+- Unitários: lógica de validação e normalização da entrada colada
+- Widget: toque longo no display abre o menu de contexto
+- Widget: opções visíveis e ocultas conforme estado (sem expressão, sem resultado, com/sem histórico)
+- Widget: "Copiar cálculo" copia a expressão correta para o clipboard
+- Widget: "Copiar resultado" copia o resultado correto
+- Widget: "Colar" com dado válido atualiza o display
+- Widget: "Colar" com dado inválido exibe snackbar de erro
+
+**Entregável**: Fluxo completo de copiar e colar no display da calculadora com menu de contexto animado, validação de entrada e feedback visual de erro.
+
+---
+
 ## Diagrama de Dependências entre Etapas
 
 ```
@@ -426,7 +477,10 @@ Etapa 9 (UI Histórico/Config)
 Etapa 10 (Polimento)
     │
     ▼
-Etapa 11 (Futuro — Cursor editável)
+Etapa 11 (Copiar e Colar)
+    │
+    ▼
+Etapa 12 (Futuro — Cursor editável)
 ```
 
 ## Resumo da Divisão
@@ -435,7 +489,8 @@ Etapa 11 (Futuro — Cursor editável)
 |------|--------|
 | **Lógica e Dados** | 1, 2, 2.1, 3, 4 |
 | **Interface Visual e Comportamento** | 5, 6, 7, 8, 9, 10 |
-| **Futuro** | 11 |
+| **Funcionalidades extras** | 11 |
+| **Futuro** | 12 |
 
 ## Estimativa de Complexidade por Etapa
 
@@ -452,12 +507,13 @@ Etapa 11 (Futuro — Cursor editável)
 | 8 — Delete contextual + parênteses | Média-Alta | ~0-1 (edições) | ~10 |
 | 9 — UI Histórico/Config | Alta | ~10 | ~12 |
 | 10 — Polimento | Baixa | ~2 | ~4 |
-| 11 — Futuro: Cursor editável | Média-Alta | ~2-3 | ~8 |
-| **Total** | | **~57-60** | **~92** |
+| 11 — Copiar e Colar | Média | ~3-4 | ~8 |
+| 12 — Cursor editável | Média-Alta | ~2-3 | ~8 |
+| **Total** | | **~60-64** | **~100** |
 
 ---
 
-## Etapa 11 — Futuro: Cursor Editável no Display
+## Etapa 12 — Cursor Editável no Display
 
 **Objetivo**: Implementar um cursor navegável no display da calculadora, permitindo ao usuário mover a posição de inserção e editar valores em qualquer ponto da expressão.
 

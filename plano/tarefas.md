@@ -399,7 +399,54 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 
 ---
 
-## Etapa 11 — Futuro: Cursor Editável no Display
+## Etapa 11 — Copiar e Colar
+
+### Testes PRIMEIRO (TDD Red)
+
+- [ ] Criar `test/unit/ui/calculator/clipboard_service_test.dart`
+  - Cenários: copiar texto, ler texto, área de transferência vazia
+- [ ] Atualizar `test/unit/ui/calculator/calculator_view_model_test.dart`
+  - Cenários: colar número inteiro (conversão Add2), colar decimal com ponto, colar decimal com vírgula, colar expressão válida, colar texto inválido (retorna erro), colar quando display está vazio
+- [ ] Criar `test/widget/calculator/context_menu_test.dart`
+  - Cenários: toque longo no display abre o menu, opções condicionais conforme estado, copiar fecha menu, colar fecha menu, dado inválido exibe snackbar
+
+### Implementação (TDD Green)
+
+- [ ] Criar `lib/data/services/clipboard_service.dart` — interface `ClipboardService`
+  - `Future<void> copyText(String text)` — copia para área de transferência
+  - `Future<String?> pasteText()` — lê da área de transferência (null se vazia)
+- [ ] Criar `lib/data/services/clipboard_service_impl.dart` — implementação com `Clipboard` do Flutter
+- [ ] Criar `test/mocks/mock_clipboard_service.dart` — mock com mocktail
+- [ ] Registrar `ClipboardService` no GetIt (`dependencies.dart`)
+- [ ] Adicionar lógica de validação e normalização de entrada colada no `CalculatorViewModel`:
+  - Normalização: separadores de milhar ignorados, vírgula decimal convertida para ponto
+  - Números inteiros: convertidos via Add2 (ex: `1250` → 2 casas decimais = `12.50`)
+  - Números com casas decimais: preservar as casas decimais existentes
+  - Expressões simples (`10 + 5`, `100 × 3`): parse e insert no estado da calculadora
+  - Entrada inválida: retorna sinalização de erro sem alterar estado
+- [ ] Implementar `pasteFromClipboard()` no `CalculatorViewModel`
+- [ ] Implementar `copyExpression()`, `copyResult()`, `copyHistory()` no `CalculatorViewModel`
+- [ ] Adicionar estado `hasExpression`, `hasResult`, `hasHistory` derivados para controlar visibilidade dos itens do menu
+- [ ] Implementar o widget de menu de contexto em `lib/ui/calculator/widgets/calculator_context_menu.dart`
+  - Abrir com `GestureDetector.onLongPress` no display
+  - Animação suave de entrada/saída (`AnimatedOpacity` + `AnimatedScale` ou similar)
+  - Opções: "Copiar cálculo", "Copiar resultado", "Copiar histórico", "Colar"
+  - Cada opção visível/invisível conforme estado; "Colar" desabilitada se área de transferência vazia
+- [ ] Integrar o menu de contexto ao `TimelineDisplay` ou diretamente na `CalculatorPage`
+- [ ] Implementar snackbar de erro para dado colado inválido (texto via `context.l10n.*`)
+- [ ] Adicionar strings ARB para todas as novas labels:
+  - `copyExpression`, `copyResult`, `copyHistory`, `paste`, `pasteInvalid`, `copied`
+
+### Validação
+
+- [ ] `flutter test` — 100% verde
+- [ ] `flutter analyze` — zero warnings
+- [ ] Regressão: testes anteriores continuam verdes
+- [ ] Teste manual: colar número, decimal, expressão e dado inválido
+
+---
+
+## Etapa 12 — Futuro: Cursor Editável no Display
 
 > **Nota**: Etapa futura (não prioritária). Permitir mover a posição de inserção e editar valores em qualquer ponto da expressão.
 

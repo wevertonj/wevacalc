@@ -529,4 +529,8 @@ Widget customizado que substituiu o `TextField` padrão no display da calculador
 
 ---
 
-## [Não iniciado] Etapa 11 — Futuro: Cursor Editável no Display
+## [Não iniciado] Etapa 11 — Copiar e Colar
+
+---
+
+## [Não iniciado] Etapa 12 — Cursor Editável no Display
