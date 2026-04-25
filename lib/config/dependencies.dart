@@ -33,7 +33,7 @@ void setupDependencies() {
   getIt.registerFactory<HistoryViewModel>(
     () => HistoryViewModel(historyRepository: getIt<HistoryRepository>()),
   );
-  getIt.registerFactory<SettingsViewModel>(
+  getIt.registerLazySingleton<SettingsViewModel>(
     () => SettingsViewModel(settingsRepository: getIt<SettingsRepository>()),
   );
 }

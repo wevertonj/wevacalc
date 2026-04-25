@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:wevacalc/domain/entities/history_entry.dart';
+import 'package:wevacalc/domain/entities/history_line.dart';
 
 class HistoryModel {
   final int? id;
-  final String expression;
+  final String linesJson;
   final String result;
   final int createdAt;
   final String? name;
@@ -10,7 +13,7 @@ class HistoryModel {
 
   const HistoryModel({
     this.id,
-    required this.expression,
+    required this.linesJson,
     required this.result,
     required this.createdAt,
     this.name,
@@ -19,7 +22,7 @@ class HistoryModel {
 
   Map<String, dynamic> toMap() {
     final map = <String, dynamic>{
-      'expression': expression,
+      'expression': linesJson,
       'result': result,
       'created_at': createdAt,
       'name': name,
@@ -35,7 +38,7 @@ class HistoryModel {
   factory HistoryModel.fromMap(Map<String, dynamic> map) {
     return HistoryModel(
       id: map['id'] as int?,
-      expression: map['expression'] as String,
+      linesJson: map['expression'] as String,
       result: map['result'] as String,
       createdAt: map['created_at'] as int,
       name: map['name'] as String?,
@@ -44,9 +47,29 @@ class HistoryModel {
   }
 
   HistoryEntry toEntity() {
+    List<HistoryLine> lines;
+
+    // Try to parse as JSON array (new format).
+    // Fall back to legacy single-expression format.
+    try {
+      final decoded = jsonDecode(linesJson);
+      if (decoded is List) {
+        lines = decoded
+            .cast<Map<String, dynamic>>()
+            .map((e) => HistoryLine.fromJson(e))
+            .toList();
+      } else {
+        // Shouldn't happen, but treat as legacy.
+        lines = [HistoryLine(expression: linesJson, result: result)];
+      }
+    } catch (_) {
+      // Legacy format: plain expression string.
+      lines = [HistoryLine(expression: linesJson, result: result)];
+    }
+
     return HistoryEntry(
       id: id,
-      expression: expression,
+      lines: lines,
       result: result,
       createdAt: DateTime.fromMillisecondsSinceEpoch(createdAt),
       name: name,
@@ -55,9 +78,13 @@ class HistoryModel {
   }
 
   factory HistoryModel.fromEntity(HistoryEntry entity) {
+    final linesJson = jsonEncode(
+      entity.lines.map((l) => l.toJson()).toList(),
+    );
+
     return HistoryModel(
       id: entity.id,
-      expression: entity.expression,
+      linesJson: linesJson,
       result: entity.result,
       createdAt: entity.createdAt.millisecondsSinceEpoch,
       name: entity.name,

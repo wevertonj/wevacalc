@@ -324,16 +324,16 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 
 ---
 
-## Etapa 9 — UI do Histórico e Configurações
+## Etapa 9 — UI do Histórico e Configurações ✅
 
 ### Testes PRIMEIRO (TDD Red)
 
-- [ ] Criar `test/widget/history/history_page_test.dart`
-- [ ] Criar `test/widget/settings/settings_page_test.dart`
+- [x] Criar `test/widget/history/history_page_test.dart`
+- [x] Criar `test/widget/settings/settings_page_test.dart`
 
 ### Implementação (TDD Green)
 
-- [ ] Implementar `HistoryPage` — `lib/ui/history/history_page.dart`
+- [x] Implementar `HistoryPage` — `lib/ui/history/history_page.dart`
   - Lista paginada em ordem cronológica inversa (mais recente primeiro)
   - Botão "load more" no final da lista
   - Cada item mostra: nome (se houver), expressão (truncada se longa), resultado e data/hora
@@ -343,23 +343,28 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
   - Expressões longas truncadas com "..." (expandível)
   - Animação de entrada para cada item da lista
   - Ação limpar com diálogo de confirmação
-- [ ] Implementar widgets auxiliares em `lib/ui/history/widgets/`
-- [ ] Implementar `SettingsPage` — `lib/ui/settings/settings_page.dart`
+- [x] Implementar widgets auxiliares em `lib/ui/history/widgets/`
+  - `HistoryListItem` — card individual com nome, expressão truncável, resultado, data/hora, favorito, renomear via long press
+- [x] Implementar `SettingsPage` — `lib/ui/settings/settings_page.dart`
   - Seção tema (modo + seed color com círculos coloridos)
   - Seção formato de número (toggle ponto/vírgula)
   - Seção idioma (seletor)
   - Toda mudança reflete imediatamente com animação suave
-- [ ] Implementar widgets auxiliares em `lib/ui/settings/widgets/`
-- [ ] Integrar navegação completa: ⏱ → HistoryPage, ⚙ → SettingsPage
-- [ ] Integrar Timeline ↔ Histórico: tocar item → carrega sessão → volta à calculadora
-- [ ] Integrar com `main.dart`: carregar preferências no startup, propagar tema/locale
-- [ ] Atualizar ARBs com strings do histórico e configurações (favoritos, renomear, load more, etc.)
+- [x] Implementar widgets auxiliares em `lib/ui/settings/widgets/`
+  - `ThemeModeSelector` — segmented button para modo do tema
+  - `ColorPicker` — row de círculos coloridos com check animado
+  - `DecimalSeparatorSelector` — toggle para formato de número
+  - `LanguageSelector` — seletor de idioma com ChoiceChips
+- [x] Integrar navegação completa: ⏱ → HistoryPage, ⚙ → SettingsPage
+- [x] Integrar Timeline ↔ Histórico: tocar item → retorna entry via Navigator.pop → CalculatorPage chama loadSession
+- [x] Integrar com `main.dart`: carregar preferências no startup, propagar tema/cor/locale reativamente
+- [x] Atualizar ARBs com strings do histórico e configurações (favoritos, renomear, load more, etc.)
 
 ### Validação
 
-- [ ] `flutter test` — 100% verde
-- [ ] `flutter analyze` — zero warnings
-- [ ] Teste manual: navegação e fluxos funcionam corretamente
+- [x] `flutter test` — 100% verde (430 testes)
+- [x] `flutter analyze` — zero warnings
+- [x] Teste manual: navegação e fluxos funcionam corretamente
 
 ---
 

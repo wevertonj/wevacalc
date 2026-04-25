@@ -76,6 +76,24 @@ class HistoryRepositoryImpl implements HistoryRepository {
   }
 
   @override
+  Future<void> update(HistoryEntry entry) async {
+    if (entry.id == null) return;
+
+    final model = HistoryModel.fromEntity(entry);
+    final map = model.toMap();
+    // Only update expression (lines JSON) and result.
+    await _database.database.update(
+      _tableName,
+      {
+        'expression': map['expression'],
+        'result': map['result'],
+      },
+      where: 'id = ?',
+      whereArgs: [entry.id],
+    );
+  }
+
+  @override
   Future<void> updateName(int id, String? name) async {
     await _database.database.update(
       _tableName,

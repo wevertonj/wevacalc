@@ -1,0 +1,52 @@
+import 'package:flutter/material.dart';
+
+import 'package:wevacalc/domain/enums/theme_mode_option.dart';
+import 'package:wevacalc/ui/widgets/flat_segmented_control.dart';
+import 'package:wevacalc/utils/extensions/l10n_extension.dart';
+
+/// A flat selector to select the theme mode (light, dark, system).
+class ThemeModeSelector extends StatelessWidget {
+  final ThemeModeOption selected;
+  final ValueChanged<ThemeModeOption> onChanged;
+
+  const ThemeModeSelector({
+    super.key,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
+    return FlatSegmentedControl<ThemeModeOption>(
+      value: selected,
+      items: ThemeModeOption.values,
+      onChanged: onChanged,
+      itemBuilder: (option) {
+        final String label;
+        final IconData icon;
+
+        switch (option) {
+          case ThemeModeOption.light:
+            label = l10n.themeLight;
+            icon = Icons.light_mode_rounded;
+            break;
+          case ThemeModeOption.dark:
+            label = l10n.themeDark;
+            icon = Icons.dark_mode_rounded;
+            break;
+          case ThemeModeOption.system:
+            label = l10n.themeSystem;
+            icon = Icons.settings_brightness_rounded;
+            break;
+        }
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [Icon(icon), const SizedBox(width: 4), Text(label)],
+        );
+      },
+    );
+  }
+}

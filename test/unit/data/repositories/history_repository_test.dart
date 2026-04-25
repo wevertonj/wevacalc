@@ -3,6 +3,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:wevacalc/data/database/app_database.dart';
 import 'package:wevacalc/data/repositories/history_repository_impl.dart';
 import 'package:wevacalc/domain/entities/history_entry.dart';
+import 'package:wevacalc/domain/entities/history_line.dart';
 
 import '../../../fixtures/history_fixtures.dart';
 
@@ -29,7 +30,7 @@ void main() {
     group('add', () {
       test('should insert a new history entry and return it with id', () async {
         final entry = HistoryEntry(
-          expression: '12.50 + 3.00',
+          lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
           result: '15.50',
           createdAt: HistoryFixtures.timestamp1,
         );
@@ -37,7 +38,7 @@ void main() {
         final result = await repository.add(entry);
 
         expect(result.id, isNotNull);
-        expect(result.expression, '12.50 + 3.00');
+        expect(result.lines.first.expression, '12.50 + 3.00');
         expect(result.result, '15.50');
         expect(result.createdAt, HistoryFixtures.timestamp1);
         expect(result.name, isNull);
@@ -46,7 +47,7 @@ void main() {
 
       test('should insert entry with name and isFavorite', () async {
         final entry = HistoryEntry(
-          expression: '500.00 ÷ 2.00',
+          lines: [HistoryLine(expression: '500.00 ÷ 2.00', result: '250.00')],
           result: '250.00',
           createdAt: HistoryFixtures.timestamp1,
           name: 'Conta do mercado',
@@ -62,12 +63,12 @@ void main() {
 
       test('should auto-increment ids', () async {
         final entry1 = HistoryEntry(
-          expression: '12.50 + 3.00',
+          lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
           result: '15.50',
           createdAt: HistoryFixtures.timestamp1,
         );
         final entry2 = HistoryEntry(
-          expression: '100.00 × 2.00',
+          lines: [HistoryLine(expression: '100.00 × 2.00', result: '200.00')],
           result: '200.00',
           createdAt: HistoryFixtures.timestamp2,
         );
@@ -91,21 +92,21 @@ void main() {
         () async {
           await repository.add(
             HistoryEntry(
-              expression: '12.50 + 3.00',
+              lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
               result: '15.50',
               createdAt: HistoryFixtures.timestamp1,
             ),
           );
           await repository.add(
             HistoryEntry(
-              expression: '100.00 × 2.00',
+              lines: [HistoryLine(expression: '100.00 × 2.00', result: '200.00')],
               result: '200.00',
               createdAt: HistoryFixtures.timestamp2,
             ),
           );
           await repository.add(
             HistoryEntry(
-              expression: '50.00 − 25.00',
+              lines: [HistoryLine(expression: '50.00 − 25.00', result: '25.00')],
               result: '25.00',
               createdAt: HistoryFixtures.timestamp3,
             ),
@@ -125,7 +126,7 @@ void main() {
       test('should return entry by id', () async {
         final added = await repository.add(
           HistoryEntry(
-            expression: '12.50 + 3.00',
+            lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
             result: '15.50',
             createdAt: HistoryFixtures.timestamp1,
             name: 'Test entry',
@@ -136,7 +137,7 @@ void main() {
 
         expect(result, isNotNull);
         expect(result!.id, added.id);
-        expect(result.expression, '12.50 + 3.00');
+        expect(result.lines.first.expression, '12.50 + 3.00');
         expect(result.name, 'Test entry');
       });
 
@@ -152,7 +153,7 @@ void main() {
         for (var i = 0; i < 5; i++) {
           await repository.add(
             HistoryEntry(
-              expression: 'expr $i',
+              lines: [HistoryLine(expression: 'expr $i', result: 'res $i')],
               result: 'res $i',
               createdAt: HistoryFixtures.timestamp1.add(Duration(minutes: i)),
             ),
@@ -168,7 +169,7 @@ void main() {
         for (var i = 0; i < 5; i++) {
           await repository.add(
             HistoryEntry(
-              expression: 'expr $i',
+              lines: [HistoryLine(expression: 'expr $i', result: 'res $i')],
               result: 'res $i',
               createdAt: HistoryFixtures.timestamp1.add(Duration(minutes: i)),
             ),
@@ -183,21 +184,21 @@ void main() {
       test('should return entries ordered by createdAt descending', () async {
         await repository.add(
           HistoryEntry(
-            expression: 'first',
+            lines: [HistoryLine(expression: 'first', result: '1')],
             result: '1',
             createdAt: HistoryFixtures.timestamp1,
           ),
         );
         await repository.add(
           HistoryEntry(
-            expression: 'second',
+            lines: [HistoryLine(expression: 'second', result: '2')],
             result: '2',
             createdAt: HistoryFixtures.timestamp2,
           ),
         );
         await repository.add(
           HistoryEntry(
-            expression: 'third',
+            lines: [HistoryLine(expression: 'third', result: '3')],
             result: '3',
             createdAt: HistoryFixtures.timestamp3,
           ),
@@ -205,14 +206,14 @@ void main() {
 
         final entries = await repository.getPaginated(limit: 2, offset: 0);
 
-        expect(entries[0].expression, 'third');
-        expect(entries[1].expression, 'second');
+        expect(entries[0].lines.first.expression, 'third');
+        expect(entries[1].lines.first.expression, 'second');
       });
 
       test('should return empty list when offset exceeds total', () async {
         await repository.add(
           HistoryEntry(
-            expression: 'expr',
+            lines: [HistoryLine(expression: 'expr', result: 'res')],
             result: 'res',
             createdAt: HistoryFixtures.timestamp1,
           ),
@@ -228,14 +229,14 @@ void main() {
       test('should return only favorite entries', () async {
         await repository.add(
           HistoryEntry(
-            expression: 'not fav',
+            lines: [HistoryLine(expression: 'not fav', result: '1')],
             result: '1',
             createdAt: HistoryFixtures.timestamp1,
           ),
         );
         await repository.add(
           HistoryEntry(
-            expression: 'fav 1',
+            lines: [HistoryLine(expression: 'fav 1', result: '2')],
             result: '2',
             createdAt: HistoryFixtures.timestamp2,
             isFavorite: true,
@@ -243,7 +244,7 @@ void main() {
         );
         await repository.add(
           HistoryEntry(
-            expression: 'fav 2',
+            lines: [HistoryLine(expression: 'fav 2', result: '3')],
             result: '3',
             createdAt: HistoryFixtures.timestamp3,
             isFavorite: true,
@@ -260,7 +261,7 @@ void main() {
         for (var i = 0; i < 5; i++) {
           await repository.add(
             HistoryEntry(
-              expression: 'fav $i',
+              lines: [HistoryLine(expression: 'fav $i', result: 'res $i')],
               result: 'res $i',
               createdAt: HistoryFixtures.timestamp1.add(Duration(minutes: i)),
               isFavorite: true,
@@ -278,7 +279,7 @@ void main() {
       test('should return empty list when no favorites exist', () async {
         await repository.add(
           HistoryEntry(
-            expression: 'not fav',
+            lines: [HistoryLine(expression: 'not fav', result: '1')],
             result: '1',
             createdAt: HistoryFixtures.timestamp1,
           ),
@@ -294,7 +295,7 @@ void main() {
       test('should update name of an entry', () async {
         final added = await repository.add(
           HistoryEntry(
-            expression: '12.50 + 3.00',
+            lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
             result: '15.50',
             createdAt: HistoryFixtures.timestamp1,
           ),
@@ -309,7 +310,7 @@ void main() {
       test('should set name to null', () async {
         final added = await repository.add(
           HistoryEntry(
-            expression: '12.50 + 3.00',
+            lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
             result: '15.50',
             createdAt: HistoryFixtures.timestamp1,
             name: 'Old name',
@@ -327,7 +328,7 @@ void main() {
       test('should toggle favorite from false to true', () async {
         final added = await repository.add(
           HistoryEntry(
-            expression: '12.50 + 3.00',
+            lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
             result: '15.50',
             createdAt: HistoryFixtures.timestamp1,
           ),
@@ -342,7 +343,7 @@ void main() {
       test('should toggle favorite from true to false', () async {
         final added = await repository.add(
           HistoryEntry(
-            expression: '12.50 + 3.00',
+            lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
             result: '15.50',
             createdAt: HistoryFixtures.timestamp1,
             isFavorite: true,
@@ -360,14 +361,14 @@ void main() {
       test('should delete a specific entry by id', () async {
         final added = await repository.add(
           HistoryEntry(
-            expression: '12.50 + 3.00',
+            lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
             result: '15.50',
             createdAt: HistoryFixtures.timestamp1,
           ),
         );
         await repository.add(
           HistoryEntry(
-            expression: '100.00 × 2.00',
+            lines: [HistoryLine(expression: '100.00 × 2.00', result: '200.00')],
             result: '200.00',
             createdAt: HistoryFixtures.timestamp2,
           ),
@@ -377,7 +378,7 @@ void main() {
 
         final entries = await repository.getAll();
         expect(entries.length, 1);
-        expect(entries[0].expression, '100.00 × 2.00');
+        expect(entries[0].lines.first.expression, '100.00 × 2.00');
       });
     });
 
@@ -385,14 +386,14 @@ void main() {
       test('should remove all entries', () async {
         await repository.add(
           HistoryEntry(
-            expression: '12.50 + 3.00',
+            lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
             result: '15.50',
             createdAt: HistoryFixtures.timestamp1,
           ),
         );
         await repository.add(
           HistoryEntry(
-            expression: '100.00 × 2.00',
+            lines: [HistoryLine(expression: '100.00 × 2.00', result: '200.00')],
             result: '200.00',
             createdAt: HistoryFixtures.timestamp2,
           ),

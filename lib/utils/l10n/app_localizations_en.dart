@@ -40,4 +40,71 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get parenthesis => 'Parenthesis';
+
+  @override
+  String get allEntries => 'All';
+
+  @override
+  String get favorites => 'Favorites';
+
+  @override
+  String get noHistory => 'No history yet';
+
+  @override
+  String get noFavorites => 'No favorites yet';
+
+  @override
+  String get clearHistory => 'Clear history';
+
+  @override
+  String get clearHistoryConfirm =>
+      'Delete all history entries? This action cannot be undone.';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get rename => 'Rename';
+
+  @override
+  String get renameSave => 'Save';
+
+  @override
+  String get renameHint => 'Entry name';
+
+  @override
+  String get theme => 'Theme';
+
+  @override
+  String get themeLight => 'Light';
+
+  @override
+  String get themeDark => 'Dark';
+
+  @override
+  String get themeSystem => 'System';
+
+  @override
+  String get color => 'Color';
+
+  @override
+  String get numberFormat => 'Number format';
+
+  @override
+  String get language => 'Language';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
+  String get languagePortuguese => 'Português';
+
+  @override
+  String get languageSpanish => 'Español';
+
+  @override
+  String get languageSystem => 'System';
 }

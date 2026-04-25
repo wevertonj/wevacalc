@@ -12,6 +12,7 @@ abstract class HistoryRepository {
     required int offset,
   });
   Future<HistoryEntry> add(HistoryEntry entry);
+  Future<void> update(HistoryEntry entry);
   Future<void> updateName(int id, String? name);
   Future<void> toggleFavorite(int id);
   Future<void> delete(int id);

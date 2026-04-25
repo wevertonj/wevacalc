@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:wevacalc/domain/entities/history_entry.dart';
+import 'package:wevacalc/domain/entities/history_line.dart';
 import 'package:wevacalc/domain/enums/decimal_separator.dart';
 import 'package:wevacalc/ui/calculator/calculator_page.dart';
 import 'package:wevacalc/ui/calculator/calculator_view_model.dart';
@@ -22,7 +23,7 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(
-      HistoryEntry(expression: '', result: '', createdAt: DateTime.now()),
+      HistoryEntry(lines: [HistoryLine(expression: '', result: '')], result: '', createdAt: DateTime.now()),
     );
     registerFallbackValue(DecimalSeparator.dot);
   });
@@ -33,7 +34,7 @@ void main() {
     when(() => mockHistoryRepository.add(any())).thenAnswer(
       (_) async => HistoryEntry(
         id: 1,
-        expression: '',
+        lines: [HistoryLine(expression: '', result: '')],
         result: '',
         createdAt: DateTime.now(),
       ),

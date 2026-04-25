@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'package:wevacalc/config/routes.dart';
 import 'package:wevacalc/config/theme/app_layout.dart';
+import 'package:wevacalc/domain/entities/history_selection.dart';
 import 'package:wevacalc/ui/calculator/calculator_view_model.dart';
 import 'package:wevacalc/ui/calculator/widgets/calculator_keypad.dart';
 import 'package:wevacalc/ui/calculator/widgets/timeline_display.dart';
@@ -57,6 +59,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
 
     return Scaffold(
       body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
             Expanded(
@@ -74,7 +77,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
               color: colors.surfaceContainer,
               padding: EdgeInsets.only(
                 top: AppLayout.padding.medium,
-                bottom: AppLayout.padding.medium,
+                bottom: AppLayout.padding.medium + MediaQuery.paddingOf(context).bottom,
               ),
               child: CalculatorKeypad(
                 onDigit: vm.inputDigit,
@@ -112,15 +115,20 @@ class _CalculatorPageState extends State<CalculatorPage> {
           IconButton(
             style: iconStyle,
             icon: Icon(Icons.history_rounded, color: dimmedColor),
-            onPressed: () {
-              // Navigation will be connected in Etapa 9
+            onPressed: () async {
+              final result = await Navigator.of(context).pushNamed(
+                AppRoutes.history,
+              );
+              if (result is HistorySelection) {
+                widget.viewModel.loadSession(result);
+              }
             },
           ),
           IconButton(
             style: iconStyle,
             icon: Icon(Icons.settings_rounded, color: dimmedColor),
             onPressed: () {
-              // Navigation will be connected in Etapa 9
+              Navigator.of(context).pushNamed(AppRoutes.settings);
             },
           ),
           const Spacer(),

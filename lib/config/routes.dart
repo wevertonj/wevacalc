@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:wevacalc/config/dependencies.dart';
 import 'package:wevacalc/ui/calculator/calculator_page.dart';
 import 'package:wevacalc/ui/calculator/calculator_view_model.dart';
+import 'package:wevacalc/ui/history/history_page.dart';
+import 'package:wevacalc/ui/history/history_view_model.dart';
+import 'package:wevacalc/ui/settings/settings_page.dart';
+import 'package:wevacalc/ui/settings/settings_view_model.dart';
 
 /// Configuração centralizada de rotas do app.
 class AppRoutes {
@@ -14,22 +18,7 @@ class AppRoutes {
 
   static Map<String, WidgetBuilder> get routes => {
     calculator: (_) => CalculatorPage(viewModel: getIt<CalculatorViewModel>()),
-    history: (_) => const _PlaceholderPage(title: 'History'),
-    settings: (_) => const _PlaceholderPage(title: 'Settings'),
+    history: (_) => HistoryPage(viewModel: getIt<HistoryViewModel>()),
+    settings: (_) => SettingsPage(viewModel: getIt<SettingsViewModel>()),
   };
-}
-
-class _PlaceholderPage extends StatelessWidget {
-  final String title;
-
-  const _PlaceholderPage({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Text(title, style: Theme.of(context).textTheme.headlineMedium),
-      ),
-    );
-  }
 }

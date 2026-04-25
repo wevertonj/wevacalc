@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wevacalc/domain/entities/history_entry.dart';
+import 'package:wevacalc/domain/entities/history_line.dart';
 
 void main() {
   group('HistoryEntry', () {
@@ -7,13 +8,13 @@ void main() {
       final createdAt = DateTime(2026, 1, 15, 10, 30);
       final entry = HistoryEntry(
         id: 1,
-        expression: '12.50 + 3.00',
+        lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
         result: '15.50',
         createdAt: createdAt,
       );
 
       expect(entry.id, 1);
-      expect(entry.expression, '12.50 + 3.00');
+      expect(entry.lines.first.expression, '12.50 + 3.00');
       expect(entry.result, '15.50');
       expect(entry.createdAt, createdAt);
       expect(entry.name, isNull);
@@ -23,13 +24,13 @@ void main() {
     test('should create instance without id', () {
       final createdAt = DateTime(2026, 1, 15, 10, 30);
       final entry = HistoryEntry(
-        expression: '12.50 + 3.00',
+        lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
         result: '15.50',
         createdAt: createdAt,
       );
 
       expect(entry.id, isNull);
-      expect(entry.expression, '12.50 + 3.00');
+      expect(entry.lines.first.expression, '12.50 + 3.00');
       expect(entry.result, '15.50');
       expect(entry.createdAt, createdAt);
       expect(entry.name, isNull);
@@ -40,7 +41,7 @@ void main() {
       final createdAt = DateTime(2026, 1, 15, 10, 30);
       final entry = HistoryEntry(
         id: 1,
-        expression: '12.50 + 3.00',
+        lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
         result: '15.50',
         createdAt: createdAt,
         name: 'Conta do mercado',
@@ -54,7 +55,7 @@ void main() {
       final createdAt = DateTime(2026, 1, 15, 10, 30);
       final entry = HistoryEntry(
         id: 1,
-        expression: '12.50 + 3.00',
+        lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
         result: '15.50',
         createdAt: createdAt,
         isFavorite: true,
@@ -68,7 +69,7 @@ void main() {
       final createdAt = DateTime(2026, 1, 15, 10, 30);
       final entry = HistoryEntry(
         id: 1,
-        expression: '200.00 × 3.00',
+        lines: [HistoryLine(expression: '200.00 × 3.00', result: '600.00')],
         result: '600.00',
         createdAt: createdAt,
         name: 'Orçamento mensal',
@@ -83,13 +84,13 @@ void main() {
       final createdAt = DateTime(2026, 1, 15, 10, 30);
       final entry1 = HistoryEntry(
         id: 1,
-        expression: '12.50 + 3.00',
+        lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
         result: '15.50',
         createdAt: createdAt,
       );
       final entry2 = HistoryEntry(
         id: 1,
-        expression: '12.50 + 3.00',
+        lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
         result: '15.50',
         createdAt: createdAt,
       );
@@ -101,7 +102,7 @@ void main() {
       final createdAt = DateTime(2026, 1, 15, 10, 30);
       final entry1 = HistoryEntry(
         id: 1,
-        expression: '12.50 + 3.00',
+        lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
         result: '15.50',
         createdAt: createdAt,
         name: 'Test',
@@ -109,7 +110,7 @@ void main() {
       );
       final entry2 = HistoryEntry(
         id: 1,
-        expression: '12.50 + 3.00',
+        lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
         result: '15.50',
         createdAt: createdAt,
         name: 'Test',
@@ -123,14 +124,14 @@ void main() {
       final createdAt = DateTime(2026, 1, 15, 10, 30);
       final entry1 = HistoryEntry(
         id: 1,
-        expression: '12.50 + 3.00',
+        lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
         result: '15.50',
         createdAt: createdAt,
         name: 'Name A',
       );
       final entry2 = HistoryEntry(
         id: 1,
-        expression: '12.50 + 3.00',
+        lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
         result: '15.50',
         createdAt: createdAt,
         name: 'Name B',
@@ -143,14 +144,14 @@ void main() {
       final createdAt = DateTime(2026, 1, 15, 10, 30);
       final entry1 = HistoryEntry(
         id: 1,
-        expression: '12.50 + 3.00',
+        lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
         result: '15.50',
         createdAt: createdAt,
         isFavorite: false,
       );
       final entry2 = HistoryEntry(
         id: 1,
-        expression: '12.50 + 3.00',
+        lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
         result: '15.50',
         createdAt: createdAt,
         isFavorite: true,
@@ -163,13 +164,13 @@ void main() {
       final createdAt = DateTime(2026, 1, 15, 10, 30);
       final entry1 = HistoryEntry(
         id: 1,
-        expression: '12.50 + 3.00',
+        lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
         result: '15.50',
         createdAt: createdAt,
       );
       final entry2 = HistoryEntry(
         id: 2,
-        expression: '12.50 + 3.00',
+        lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
         result: '15.50',
         createdAt: createdAt,
       );
@@ -181,7 +182,7 @@ void main() {
       final createdAt = DateTime(2026, 1, 15, 10, 30);
       final entry1 = HistoryEntry(
         id: 1,
-        expression: '12.50 + 3.00',
+        lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
         result: '15.50',
         createdAt: createdAt,
         name: 'Test',
@@ -189,7 +190,7 @@ void main() {
       );
       final entry2 = HistoryEntry(
         id: 1,
-        expression: '12.50 + 3.00',
+        lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
         result: '15.50',
         createdAt: createdAt,
         name: 'Test',
@@ -203,14 +204,14 @@ void main() {
       final createdAt = DateTime(2026, 1, 15, 10, 30);
       final entry = HistoryEntry(
         id: 1,
-        expression: '12.50 + 3.00',
+        lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
         result: '15.50',
         createdAt: createdAt,
       );
       final copy = entry.copyWith(id: 2, result: '20.00');
 
       expect(copy.id, 2);
-      expect(copy.expression, '12.50 + 3.00');
+      expect(copy.lines.first.expression, '12.50 + 3.00');
       expect(copy.result, '20.00');
       expect(copy.createdAt, createdAt);
       expect(copy.name, isNull);
@@ -221,7 +222,7 @@ void main() {
       final createdAt = DateTime(2026, 1, 15, 10, 30);
       final entry = HistoryEntry(
         id: 1,
-        expression: '12.50 + 3.00',
+        lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
         result: '15.50',
         createdAt: createdAt,
       );
@@ -229,14 +230,14 @@ void main() {
 
       expect(copy.name, 'Meu cálculo');
       expect(copy.id, 1);
-      expect(copy.expression, '12.50 + 3.00');
+      expect(copy.lines.first.expression, '12.50 + 3.00');
     });
 
     test('should copyWith isFavorite', () {
       final createdAt = DateTime(2026, 1, 15, 10, 30);
       final entry = HistoryEntry(
         id: 1,
-        expression: '12.50 + 3.00',
+        lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
         result: '15.50',
         createdAt: createdAt,
       );
@@ -250,7 +251,7 @@ void main() {
       final createdAt = DateTime(2026, 1, 15, 10, 30);
       final entry = HistoryEntry(
         id: 1,
-        expression: '12.50 + 3.00',
+        lines: [HistoryLine(expression: '12.50 + 3.00', result: '15.50')],
         result: '15.50',
         createdAt: createdAt,
         name: 'Original',

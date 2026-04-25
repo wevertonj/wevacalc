@@ -165,6 +165,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Parenthesis'**
   String get parenthesis;
+
+  /// Tab label for all history entries
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get allEntries;
+
+  /// Tab label for favorite entries only
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get favorites;
+
+  /// Empty state message when there are no history entries
+  ///
+  /// In en, this message translates to:
+  /// **'No history yet'**
+  String get noHistory;
+
+  /// Empty state message when there are no favorite entries
+  ///
+  /// In en, this message translates to:
+  /// **'No favorites yet'**
+  String get noFavorites;
+
+  /// Action to clear all history entries
+  ///
+  /// In en, this message translates to:
+  /// **'Clear history'**
+  String get clearHistory;
+
+  /// Confirmation message before clearing history
+  ///
+  /// In en, this message translates to:
+  /// **'Delete all history entries? This action cannot be undone.'**
+  String get clearHistoryConfirm;
+
+  /// Cancel button label
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// Delete button label
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// Rename action label
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get rename;
+
+  /// Save button in rename dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get renameSave;
+
+  /// Hint text for the rename input field
+  ///
+  /// In en, this message translates to:
+  /// **'Entry name'**
+  String get renameHint;
+
+  /// Settings section title for theme mode
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get theme;
+
+  /// Light theme option
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get themeLight;
+
+  /// Dark theme option
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get themeDark;
+
+  /// System theme option
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get themeSystem;
+
+  /// Settings section title for accent color
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get color;
+
+  /// Settings section title for number format
+  ///
+  /// In en, this message translates to:
+  /// **'Number format'**
+  String get numberFormat;
+
+  /// Settings section title for language
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get language;
+
+  /// English language option
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get languageEnglish;
+
+  /// Portuguese language option
+  ///
+  /// In en, this message translates to:
+  /// **'Português'**
+  String get languagePortuguese;
+
+  /// Spanish language option
+  ///
+  /// In en, this message translates to:
+  /// **'Español'**
+  String get languageSpanish;
+
+  /// System language option (follow device setting)
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get languageSystem;
 }
 
 class _AppLocalizationsDelegate

@@ -40,4 +40,71 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get parenthesis => 'Parêntese';
+
+  @override
+  String get allEntries => 'Todos';
+
+  @override
+  String get favorites => 'Favoritos';
+
+  @override
+  String get noHistory => 'Nenhum histórico ainda';
+
+  @override
+  String get noFavorites => 'Nenhum favorito ainda';
+
+  @override
+  String get clearHistory => 'Limpar histórico';
+
+  @override
+  String get clearHistoryConfirm =>
+      'Apagar todo o histórico? Esta ação não pode ser desfeita.';
+
+  @override
+  String get cancel => 'Cancelar';
+
+  @override
+  String get delete => 'Excluir';
+
+  @override
+  String get rename => 'Renomear';
+
+  @override
+  String get renameSave => 'Salvar';
+
+  @override
+  String get renameHint => 'Nome da entrada';
+
+  @override
+  String get theme => 'Tema';
+
+  @override
+  String get themeLight => 'Claro';
+
+  @override
+  String get themeDark => 'Escuro';
+
+  @override
+  String get themeSystem => 'Sistema';
+
+  @override
+  String get color => 'Cor';
+
+  @override
+  String get numberFormat => 'Formato numérico';
+
+  @override
+  String get language => 'Idioma';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
+  String get languagePortuguese => 'Português';
+
+  @override
+  String get languageSpanish => 'Español';
+
+  @override
+  String get languageSystem => 'Sistema';
 }

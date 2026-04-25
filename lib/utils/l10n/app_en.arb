@@ -43,5 +43,93 @@
   "parenthesis": "Parenthesis",
   "@parenthesis": {
     "description": "Accessibility label for the parenthesis toggle button"
+  },
+  "allEntries": "All",
+  "@allEntries": {
+    "description": "Tab label for all history entries"
+  },
+  "favorites": "Favorites",
+  "@favorites": {
+    "description": "Tab label for favorite entries only"
+  },
+  "noHistory": "No history yet",
+  "@noHistory": {
+    "description": "Empty state message when there are no history entries"
+  },
+  "noFavorites": "No favorites yet",
+  "@noFavorites": {
+    "description": "Empty state message when there are no favorite entries"
+  },
+  "clearHistory": "Clear history",
+  "@clearHistory": {
+    "description": "Action to clear all history entries"
+  },
+  "clearHistoryConfirm": "Delete all history entries? This action cannot be undone.",
+  "@clearHistoryConfirm": {
+    "description": "Confirmation message before clearing history"
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+  "delete": "Delete",
+  "@delete": {
+    "description": "Delete button label"
+  },
+  "rename": "Rename",
+  "@rename": {
+    "description": "Rename action label"
+  },
+  "renameSave": "Save",
+  "@renameSave": {
+    "description": "Save button in rename dialog"
+  },
+  "renameHint": "Entry name",
+  "@renameHint": {
+    "description": "Hint text for the rename input field"
+  },
+  "theme": "Theme",
+  "@theme": {
+    "description": "Settings section title for theme mode"
+  },
+  "themeLight": "Light",
+  "@themeLight": {
+    "description": "Light theme option"
+  },
+  "themeDark": "Dark",
+  "@themeDark": {
+    "description": "Dark theme option"
+  },
+  "themeSystem": "System",
+  "@themeSystem": {
+    "description": "System theme option"
+  },
+  "color": "Color",
+  "@color": {
+    "description": "Settings section title for accent color"
+  },
+  "numberFormat": "Number format",
+  "@numberFormat": {
+    "description": "Settings section title for number format"
+  },
+  "language": "Language",
+  "@language": {
+    "description": "Settings section title for language"
+  },
+  "languageEnglish": "English",
+  "@languageEnglish": {
+    "description": "English language option"
+  },
+  "languagePortuguese": "Português",
+  "@languagePortuguese": {
+    "description": "Portuguese language option"
+  },
+  "languageSpanish": "Español",
+  "@languageSpanish": {
+    "description": "Spanish language option"
+  },
+  "languageSystem": "System",
+  "@languageSystem": {
+    "description": "System language option (follow device setting)"
   }
 }

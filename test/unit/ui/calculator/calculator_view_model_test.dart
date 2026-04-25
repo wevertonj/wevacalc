@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:wevacalc/domain/entities/history_entry.dart';
+import 'package:wevacalc/domain/entities/history_line.dart';
+import 'package:wevacalc/domain/entities/history_selection.dart';
 import 'package:wevacalc/domain/enums/decimal_separator.dart';
 import 'package:wevacalc/ui/calculator/calculator_view_model.dart';
 
@@ -16,7 +18,11 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(
-      HistoryEntry(expression: '', result: '', createdAt: DateTime(2026)),
+      HistoryEntry(
+        lines: [HistoryLine(expression: '', result: '')],
+        result: '',
+        createdAt: DateTime(2026),
+      ),
     );
     registerFallbackValue(DecimalSeparator.dot);
   });
@@ -427,12 +433,13 @@ void main() {
         viewModel.inputDigit('0');
         viewModel.applyPercentage();
         viewModel.equals();
+        viewModel.clear();
 
         final captured = verify(
           () => mockHistoryRepository.add(captureAny()),
         ).captured;
         final entry = captured.single as HistoryEntry;
-        expect(entry.expression, contains('%'));
+        expect(entry.lines.first.expression, contains('%'));
       });
 
       test('should preserve % literal when chaining with another operator', () {
@@ -509,7 +516,7 @@ void main() {
         expect(viewModel.currentDisplayValue, '15.50');
       });
 
-      test('should persist result to history repository', () {
+      test('should persist session to history repository on clear', () {
         when(
           () => mockHistoryRepository.add(any()),
         ).thenAnswer((_) async => HistoryFixtures.entry1);
@@ -523,6 +530,7 @@ void main() {
         viewModel.inputDigit('0');
         viewModel.inputDigit('0');
         viewModel.equals();
+        viewModel.clear();
 
         verify(() => mockHistoryRepository.add(any())).called(1);
       });
@@ -1058,14 +1066,16 @@ void main() {
 
     group('loadSession', () {
       test('should load history entries into timeline', () {
-        final entries = [HistoryFixtures.entry1, HistoryFixtures.entry2];
-        viewModel.loadSession(entries);
+        final entry = HistoryFixtures.entry1;
+        viewModel.loadSession(HistorySelection(entry: entry, lineIndex: 0));
 
-        expect(viewModel.timelineEntries.length, 2);
+        expect(viewModel.timelineEntries.length, 1);
       });
 
       test('should set result as current display value', () {
-        viewModel.loadSession([HistoryFixtures.entry1]);
+        viewModel.loadSession(
+          HistorySelection(entry: HistoryFixtures.entry1, lineIndex: 0),
+        );
 
         expect(viewModel.currentDisplayValue, '15.50');
       });
@@ -1073,7 +1083,9 @@ void main() {
       test('should clear current expression when loading session', () {
         viewModel.inputDigit('1');
         viewModel.setOperator('+');
-        viewModel.loadSession([HistoryFixtures.entry1]);
+        viewModel.loadSession(
+          HistorySelection(entry: HistoryFixtures.entry1, lineIndex: 0),
+        );
 
         expect(viewModel.expression, '');
         expect(viewModel.currentOperator, isNull);
@@ -1082,7 +1094,9 @@ void main() {
       test('should notify listeners when session is loaded', () {
         var notified = false;
         viewModel.addListener(() => notified = true);
-        viewModel.loadSession([HistoryFixtures.entry1]);
+        viewModel.loadSession(
+          HistorySelection(entry: HistoryFixtures.entry1, lineIndex: 0),
+        );
 
         expect(notified, true);
       });
@@ -1167,7 +1181,7 @@ void main() {
         when(() => mockHistoryRepository.add(any())).thenAnswer(
           (_) async => HistoryEntry(
             id: 1,
-            expression: '',
+            lines: [HistoryLine(expression: '', result: '')],
             result: '',
             createdAt: DateTime.now(),
           ),

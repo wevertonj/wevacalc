@@ -7,6 +7,8 @@ import 'package:wevacalc/data/repositories/settings_repository.dart';
 import 'package:wevacalc/domain/add2_engine.dart';
 import 'package:wevacalc/domain/entities/calculation.dart';
 import 'package:wevacalc/domain/entities/history_entry.dart';
+import 'package:wevacalc/domain/entities/history_line.dart';
+import 'package:wevacalc/domain/entities/history_selection.dart';
 import 'package:wevacalc/domain/enums/decimal_separator.dart';
 import 'package:wevacalc/domain/expression_evaluator.dart';
 import 'package:wevacalc/utils/formatters/number_formatter.dart';
@@ -25,6 +27,11 @@ class CalculatorViewModel extends ChangeNotifier {
 
   final List<Calculation> _timelineEntries = [];
 
+  /// Raw expression/result pairs accumulated during the current session.
+  /// These are persisted as a single [HistoryEntry] on each `=` press
+  /// (created the first time, updated on subsequent presses) and on `clear()`.
+  final List<HistoryLine> _sessionLines = [];
+
   /// Committed tokens of the in-progress expression. Each entry is one of:
   /// a numeric value (optionally suffixed with `%`), an operator
   /// (`+`, `−`, `×`, `÷`), or a parenthesis (`(`, `)`).
@@ -38,6 +45,19 @@ class CalculatorViewModel extends ChangeNotifier {
   /// serve apenas como proteção contra reentrância síncrona.
   final Queue<VoidCallback> _actionQueue = Queue<VoidCallback>();
   bool _isProcessingActions = false;
+
+  /// Database ID of the current session. `null` when no session has been
+  /// persisted yet. Set after the first `=` press and reset on `clear()`.
+  int? _currentSessionId;
+
+  /// Number of session lines already persisted. Used to skip redundant
+  /// save calls (e.g., `clear()` right after `=` should not re-add).
+  int _persistedLineCount = 0;
+
+  /// True once an `add` has been issued for the current session, even before
+  /// the asynchronous future resolves with the new id. Prevents duplicate
+  /// `add` calls when subsequent persistence happens synchronously after `=`.
+  bool _addInFlight = false;
 
   /// Operator typed but not yet committed (waiting for the right-hand side).
   String? _pendingOperator;
@@ -386,13 +406,11 @@ class CalculatorViewModel extends ChangeNotifier {
 
       _timelineEntries.add(calculation);
 
-      _historyRepository.add(
-        HistoryEntry(
-          expression: raw,
-          result: result,
-          createdAt: DateTime.now(),
-        ),
-      );
+      // Store the raw expression/result pair for session-based saving.
+      _sessionLines.add(HistoryLine(expression: raw, result: result));
+
+      // Persist the session: create on first =, update on subsequent.
+      _saveOrUpdateSession();
 
       _committed.clear();
       _pendingOperator = null;
@@ -408,6 +426,10 @@ class CalculatorViewModel extends ChangeNotifier {
   void clear() {
     _runAction(() {
       if (!hasContent) return;
+
+      // Save/update the current session to history before clearing.
+      _saveOrUpdateSession();
+
       _add2Engine.reset();
       _committed.clear();
       _pendingOperator = null;
@@ -415,6 +437,9 @@ class CalculatorViewModel extends ChangeNotifier {
       _shouldResetOnInput = false;
       _currentIsPercentage = false;
       _timelineEntries.clear();
+      _sessionLines.clear();
+      _currentSessionId = null;
+      _persistedLineCount = 0;
       notifyListeners();
     });
   }
@@ -510,33 +535,119 @@ class CalculatorViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void loadSession(List<HistoryEntry> entries) {
-    _timelineEntries.clear();
+  /// Loads a history session into the calculator, restoring the timeline
+  /// up to (and including) the specified [selection.lineIndex].
+  ///
+  /// The last loaded line's expression is placed into the display field
+  /// as if the user had just typed it, ready for editing or continuation.
+  void loadSession(HistorySelection selection) {
+    // Save any existing session before overwriting.
+    _saveOrUpdateSession();
 
-    for (final entry in entries) {
+    _timelineEntries.clear();
+    _sessionLines.clear();
+
+    final entry = selection.entry;
+    final upToIndex = selection.lineIndex.clamp(0, entry.lines.length - 1);
+
+    // Track the loaded session so subsequent = presses update it.
+    _currentSessionId = entry.id;
+    _persistedLineCount = 0; // Updated after lines are added below.
+
+    // Load all lines up to (but not including) the selected line into timeline.
+    for (var i = 0; i < upToIndex; i++) {
+      final line = entry.lines[i];
       _timelineEntries.add(
         Calculation(
-          expression: _formatExpression(entry.expression),
-          result: _formatValue(entry.result),
+          expression: _formatExpression(line.expression),
+          result: _formatValue(line.result),
           timestamp: entry.createdAt,
         ),
       );
+      _sessionLines.add(line);
     }
 
-    if (entries.isNotEmpty) {
-      final lastResult = entries.last.result;
-      _add2Engine.setValue(_parseToInt(lastResult));
-    }
+    // The selected line: put its expression into the display field
+    // and its result into the engine.
+    final selectedLine = entry.lines[upToIndex];
+    _timelineEntries.add(
+      Calculation(
+        expression: _formatExpression(selectedLine.expression),
+        result: _formatValue(selectedLine.result),
+        timestamp: entry.createdAt,
+      ),
+    );
+    _sessionLines.add(selectedLine);
+    _add2Engine.setValue(_parseToInt(selectedLine.result));
+
+    // Loaded lines are already persisted in the database, so subsequent
+    // saves should hit the update branch (or no-op if no new lines).
+    _persistedLineCount = _sessionLines.length;
 
     _committed.clear();
     _pendingOperator = null;
     _engineActive = false;
     _currentIsPercentage = false;
-    _shouldResetOnInput = false;
+    _shouldResetOnInput = true;
     notifyListeners();
   }
 
   // ----- Helpers --------------------------------------------------------
+
+  /// Persists or updates the current session lines as a single [HistoryEntry].
+  ///
+  /// On the first call within a session, creates a new row in the database
+  /// and stores its ID in [_currentSessionId]. Subsequent calls update the
+  /// existing row with the latest lines and result. No-op when there are
+  /// no new lines since the last persist.
+  void _saveOrUpdateSession() {
+    if (_sessionLines.isEmpty) return;
+    if (_sessionLines.length == _persistedLineCount) return;
+
+    final lastResult = _sessionLines.last.result;
+    final linesSnapshot = List.of(_sessionLines);
+
+    if (_currentSessionId != null) {
+      _historyRepository.update(
+        HistoryEntry(
+          id: _currentSessionId,
+          lines: linesSnapshot,
+          result: lastResult,
+          createdAt: DateTime.now(),
+        ),
+      );
+      _persistedLineCount = linesSnapshot.length;
+
+      return;
+    }
+
+    if (_addInFlight) {
+      // First add already issued but id not yet returned. Do not issue
+      // another add; the in-flight future will set the id and the next
+      // persist call will go through the update branch.
+      _persistedLineCount = linesSnapshot.length;
+
+      return;
+    }
+
+    _addInFlight = true;
+    _persistedLineCount = linesSnapshot.length;
+    _historyRepository
+        .add(
+          HistoryEntry(
+            lines: linesSnapshot,
+            result: lastResult,
+            createdAt: DateTime.now(),
+          ),
+        )
+        .then((saved) {
+          _addInFlight = false;
+          // Only adopt the id if the session wasn't reset in the meantime.
+          if (_persistedLineCount > 0) {
+            _currentSessionId = saved.id;
+          }
+        });
+  }
 
   String _engineToken() {
     final value = _add2Engine.formattedValue;

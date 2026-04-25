@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:wevacalc/domain/entities/history_entry.dart';
+import 'package:wevacalc/domain/entities/history_line.dart';
 import 'package:wevacalc/ui/history/history_view_model.dart';
 
 import '../../../mocks/mock_history_repository.dart';
@@ -13,7 +14,7 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(
-      HistoryEntry(expression: '', result: '', createdAt: DateTime(2026)),
+      HistoryEntry(lines: [HistoryLine(expression: '', result: '')], result: '', createdAt: DateTime(2026)),
     );
   });
 
@@ -64,7 +65,7 @@ void main() {
           20,
           (i) => HistoryEntry(
             id: i + 1,
-            expression: '$i.00 + 1.00',
+            lines: [HistoryLine(expression: '$i.00 + 1.00', result: '${i + 1}.00')],
             result: '${i + 1}.00',
             createdAt: DateTime(2026, 1, 1, i),
           ),
@@ -128,7 +129,7 @@ void main() {
           20,
           (i) => HistoryEntry(
             id: i + 1,
-            expression: '$i.00 + 1.00',
+            lines: [HistoryLine(expression: '$i.00 + 1.00', result: '${i + 1}.00')],
             result: '${i + 1}.00',
             createdAt: DateTime(2026, 1, 1, i),
           ),
@@ -159,7 +160,7 @@ void main() {
           20,
           (i) => HistoryEntry(
             id: i + 1,
-            expression: '$i.00 + 1.00',
+            lines: [HistoryLine(expression: '$i.00 + 1.00', result: '${i + 1}.00')],
             result: '${i + 1}.00',
             createdAt: DateTime(2026, 1, 1, i),
           ),
@@ -175,7 +176,7 @@ void main() {
         final secondPage = [
           HistoryEntry(
             id: 21,
-            expression: '20.00 + 1.00',
+            lines: [HistoryLine(expression: '20.00 + 1.00', result: '21.00')],
             result: '21.00',
             createdAt: DateTime(2026, 1, 2),
           ),
@@ -196,7 +197,7 @@ void main() {
           20,
           (i) => HistoryEntry(
             id: i + 1,
-            expression: '$i.00 + 1.00',
+            lines: [HistoryLine(expression: '$i.00 + 1.00', result: '${i + 1}.00')],
             result: '${i + 1}.00',
             createdAt: DateTime(2026, 1, 1, i),
           ),
@@ -236,7 +237,7 @@ void main() {
           20,
           (i) => HistoryEntry(
             id: i + 1,
-            expression: '$i.00 + 1.00',
+            lines: [HistoryLine(expression: '$i.00 + 1.00', result: '${i + 1}.00')],
             result: '${i + 1}.00',
             createdAt: DateTime(2026, 1, 1, i),
           ),
@@ -491,7 +492,7 @@ void main() {
           20,
           (i) => HistoryEntry(
             id: i + 1,
-            expression: '$i.00 + 1.00',
+            lines: [HistoryLine(expression: '$i.00 + 1.00', result: '${i + 1}.00')],
             result: '${i + 1}.00',
             createdAt: DateTime(2026, 1, 1, i),
             isFavorite: true,
@@ -507,7 +508,7 @@ void main() {
         final secondPage = [
           HistoryEntry(
             id: 21,
-            expression: '20.00 + 1.00',
+            lines: [HistoryLine(expression: '20.00 + 1.00', result: '21.00')],
             result: '21.00',
             createdAt: DateTime(2026, 1, 2),
             isFavorite: true,

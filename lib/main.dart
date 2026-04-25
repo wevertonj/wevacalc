@@ -6,6 +6,8 @@ import 'package:wevacalc/config/routes.dart';
 import 'package:wevacalc/data/database/app_database.dart';
 import 'package:wevacalc/config/theme/app_colors.dart';
 import 'package:wevacalc/config/theme/app_theme.dart';
+import 'package:wevacalc/domain/enums/theme_mode_option.dart';
+import 'package:wevacalc/ui/settings/settings_view_model.dart';
 import 'package:wevacalc/utils/l10n/app_localizations.dart';
 
 void main() async {
@@ -16,20 +18,66 @@ void main() async {
   ]);
   setupDependencies();
   await getIt<AppDatabase>().initialize();
+  await getIt<SettingsViewModel>().loadSettings();
   runApp(const WevaCalcApp());
 }
 
-class WevaCalcApp extends StatelessWidget {
+class WevaCalcApp extends StatefulWidget {
   const WevaCalcApp({super.key});
 
   @override
+  State<WevaCalcApp> createState() => _WevaCalcAppState();
+}
+
+class _WevaCalcAppState extends State<WevaCalcApp> {
+  late final SettingsViewModel _settingsVM;
+
+  @override
+  void initState() {
+    super.initState();
+    _settingsVM = getIt<SettingsViewModel>();
+    _settingsVM.addListener(_onSettingsChanged);
+  }
+
+  @override
+  void dispose() {
+    _settingsVM.removeListener(_onSettingsChanged);
+    super.dispose();
+  }
+
+  void _onSettingsChanged() {
+    setState(() {});
+  }
+
+  ThemeMode _resolveThemeMode() {
+    switch (_settingsVM.themeMode) {
+      case ThemeModeOption.light:
+        return ThemeMode.light;
+      case ThemeModeOption.dark:
+        return ThemeMode.dark;
+      case ThemeModeOption.system:
+        return ThemeMode.system;
+    }
+  }
+
+  Locale? _resolveLocale() {
+    final locale = _settingsVM.locale;
+    if (locale == null) return null;
+
+    return Locale(locale);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final seedColor = AppColors.seedColors[_settingsVM.seedColorIndex];
+
     return MaterialApp(
       title: 'WevaCalc',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(seedColor: AppColors.defaultSeedColor),
-      darkTheme: AppTheme.dark(seedColor: AppColors.defaultSeedColor),
-      themeMode: ThemeMode.dark,
+      theme: AppTheme.light(seedColor: seedColor),
+      darkTheme: AppTheme.dark(seedColor: seedColor),
+      themeMode: _resolveThemeMode(),
+      locale: _resolveLocale(),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       routes: AppRoutes.routes,

@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wevacalc/data/models/history_model.dart';
 import 'package:wevacalc/domain/entities/history_entry.dart';
+import 'package:wevacalc/domain/entities/history_line.dart';
 
 import '../../../fixtures/history_fixtures.dart';
 
@@ -10,7 +13,7 @@ void main() {
       final model = HistoryFixtures.model1;
 
       expect(model.id, 1);
-      expect(model.expression, '12.50 + 3.00');
+      expect(model.linesJson, isNotEmpty);
       expect(model.result, '15.50');
       expect(
         model.createdAt,
@@ -40,7 +43,7 @@ void main() {
         final map = model.toMap();
 
         expect(map['id'], 1);
-        expect(map['expression'], '12.50 + 3.00');
+        expect(map['expression'], isNotEmpty);
         expect(map['result'], '15.50');
         expect(
           map['created_at'],
@@ -52,14 +55,14 @@ void main() {
 
       test('should convert to map without id when id is null', () {
         final model = HistoryModel(
-          expression: '12.50 + 3.00',
+          linesJson: jsonEncode([{'expression': '12.50 + 3.00', 'result': '15.50'}]),
           result: '15.50',
           createdAt: HistoryFixtures.timestamp1.millisecondsSinceEpoch,
         );
         final map = model.toMap();
 
         expect(map.containsKey('id'), isFalse);
-        expect(map['expression'], '12.50 + 3.00');
+        expect(map['expression'], isNotEmpty);
         expect(map['result'], '15.50');
         expect(
           map['created_at'],
@@ -91,7 +94,7 @@ void main() {
         final model = HistoryModel.fromMap(HistoryFixtures.map1);
 
         expect(model.id, 1);
-        expect(model.expression, '12.50 + 3.00');
+        expect(model.linesJson, isNotEmpty);
         expect(model.result, '15.50');
         expect(
           model.createdAt,
@@ -105,7 +108,7 @@ void main() {
         final model = HistoryModel.fromMap(HistoryFixtures.mapWithoutId);
 
         expect(model.id, isNull);
-        expect(model.expression, '12.50 + 3.00');
+        expect(model.linesJson, isNotEmpty);
       });
 
       test('should create model from map with name', () {
@@ -130,7 +133,8 @@ void main() {
 
         expect(entity, isA<HistoryEntry>());
         expect(entity.id, 1);
-        expect(entity.expression, '12.50 + 3.00');
+        expect(entity.lines, hasLength(1));
+        expect(entity.lines.first.expression, '12.50 + 3.00');
         expect(entity.result, '15.50');
         expect(entity.createdAt, HistoryFixtures.timestamp1);
         expect(entity.name, isNull);
@@ -152,6 +156,20 @@ void main() {
         expect(entity.name, isNull);
         expect(entity.isFavorite, isTrue);
       });
+
+      test('should handle legacy plain-text expression format', () {
+        final model = HistoryModel(
+          id: 1,
+          linesJson: '12.50 + 3.00',  // Legacy format: not JSON
+          result: '15.50',
+          createdAt: HistoryFixtures.timestamp1.millisecondsSinceEpoch,
+        );
+        final entity = model.toEntity();
+
+        expect(entity.lines, hasLength(1));
+        expect(entity.lines.first.expression, '12.50 + 3.00');
+        expect(entity.lines.first.result, '15.50');
+      });
     });
 
     group('fromEntity', () {
@@ -160,7 +178,11 @@ void main() {
         final model = HistoryModel.fromEntity(entity);
 
         expect(model.id, 1);
-        expect(model.expression, '12.50 + 3.00');
+        expect(model.linesJson, isNotEmpty);
+        // Verify the JSON round-trip
+        final decoded = jsonDecode(model.linesJson) as List;
+        expect(decoded, hasLength(1));
+        expect(decoded.first['expression'], '12.50 + 3.00');
         expect(model.result, '15.50');
         expect(
           model.createdAt,
@@ -172,14 +194,14 @@ void main() {
 
       test('should create model from entity without id', () {
         final entity = HistoryEntry(
-          expression: '5.00 + 3.00',
+          lines: [HistoryLine(expression: '5.00 + 3.00', result: '8.00')],
           result: '8.00',
           createdAt: HistoryFixtures.timestamp1,
         );
         final model = HistoryModel.fromEntity(entity);
 
         expect(model.id, isNull);
-        expect(model.expression, '5.00 + 3.00');
+        expect(model.linesJson, isNotEmpty);
       });
 
       test('should create model from entity with name', () {

@@ -521,9 +521,90 @@ Widget customizado que substituiu o `TextField` padrão no display da calculador
 
 ---
 
-## [Não iniciado] Etapa 9 — UI do Histórico e Configurações
+## [Concluída] Etapa 9 — UI do Histórico e Configurações
 
----
+### Internacionalização
+
+- Novas chaves ARB (en, pt, es): `allEntries`, `favorites`, `noHistory`, `noFavorites`, `clearHistory`, `clearHistoryConfirm`, `cancel`, `delete`, `rename`, `renameSave`, `renameHint`, `theme`, `themeLight`, `themeDark`, `themeSystem`, `color`, `numberFormat`, `language`, `languageEnglish`, `languagePortuguese`, `languageSpanish`, `languageSystem`
+
+### HistoryPage (`lib/ui/history/history_page.dart`)
+
+- Lista paginada com `ListView.builder` em ordem cronológica inversa
+- Botão "Load more" no final da lista (quando `hasMore` é true)
+- Filtro Todos/Favoritos via `SegmentedButton<bool>`
+- Estado vazio: ícone + texto diferenciado para "sem histórico" e "sem favoritos"
+- Botão de limpar (🗑) na AppBar com diálogo de confirmação
+- Ação de limpar com `AlertDialog` (Cancel/Delete com botão de erro)
+- Animação de entrada staggered: cada item anima com slide + fade (300ms, `Curves.easeOutCubic`) com delay progressivo (40ms × index, max 10)
+- Retorna `HistoryEntry` via `Navigator.pop(entry)` ao tocar em um item — mantendo o SRP (HistoryPage não conhece CalculatorViewModel)
+
+### HistoryListItem (`lib/ui/history/widgets/history_list_item.dart`)
+
+- Card com Material Design: `Card` + `InkWell` com radius 16
+- Exibe: nome (se houver, em cor primary), expressão (truncada a 30 chars com "..."), resultado ("= 75.00"), data/hora
+- Expressão longa expandível: toque na expressão alterna entre truncada e completa
+- Favorito: `IconButton` com `AnimatedSwitcher` + `ScaleTransition` (200ms) entre `star_outline_rounded` e `star_rounded`
+- Long press: abre `AlertDialog` para renomear entrada (campo de texto com `TextCapitalization.sentences`, submit via teclado ou botão)
+- Formatação de data inteligente: hora (hoje), "Yesterday, HH:mm" (ontem), "DD/MM/YYYY, HH:mm" (outros)
+
+### SettingsPage (`lib/ui/settings/settings_page.dart`)
+
+- Layout em `ListView` com seções separadas por `_SectionTitle` (título em cor primary, w600)
+- Seções: Tema, Cor, Formato numérico, Idioma
+- AppBar transparente com título centralizado
+- Listener no `SettingsViewModel` para rebuild reativo
+
+### ThemeModeSelector (`lib/ui/settings/widgets/theme_mode_selector.dart`)
+
+- `SegmentedButton<ThemeModeOption>` com 3 opções: Light (☀), Dark (🌙), System (🔆)
+- Ícones: `light_mode_rounded`, `dark_mode_rounded`, `settings_brightness_rounded`
+
+### ColorPicker (`lib/ui/settings/widgets/color_picker.dart`)
+
+- `Wrap` com 9 círculos coloridos (40×40) de `AppColors.seedColors`
+- Seleção: borda de 2.5px (`onSurface`), sombra glow na cor, ícone ✓ com cor de contraste
+- Animação: `AnimatedContainer` (200ms) para borda/sombra, `AnimatedSwitcher` (200ms) para ícone
+- Cor de contraste automática via `computeLuminance()`
+
+### DecimalSeparatorSelector (`lib/ui/settings/widgets/decimal_separator_selector.dart`)
+
+- `SegmentedButton<DecimalSeparator>` com exemplos visuais: "1,000.00" (dot) e "1.000,00" (comma)
+
+### LanguageSelector (`lib/ui/settings/widgets/language_selector.dart`)
+
+- `Wrap` de `ChoiceChip` com 4 opções: System (null), English ("en"), Português ("pt"), Español ("es")
+- Chip selecionado usa `primaryContainer`/`onPrimaryContainer`
+
+### Integração — main.dart
+
+- `WevaCalcApp` agora é `StatefulWidget` com listener no `SettingsViewModel` (singleton)
+- `loadSettings()` chamado antes do `runApp` para carregar preferências ao iniciar
+- `MaterialApp` recebe `theme`/`darkTheme` gerados a partir da seed color selecionada
+- `themeMode` resolvido a partir de `ThemeModeOption` → `ThemeMode`
+- `locale` resolvido: `null` → segue sistema, `"pt"` → `Locale('pt')`, etc.
+- Mudanças de tema/cor/idioma nas Settings refletem imediatamente no app inteiro via `setState`
+
+### Integração — dependencies.dart
+
+- `SettingsViewModel` alterado de `registerFactory` para `registerLazySingleton` — instância compartilhada para que mudanças nas Settings propagiem globalmente
+
+### Integração — routes.dart
+
+- Removidos placeholders (`_PlaceholderPage`)
+- `/history` → `HistoryPage(viewModel: getIt<HistoryViewModel>())`
+- `/settings` → `SettingsPage(viewModel: getIt<SettingsViewModel>())`
+
+### Integração — calculator_page.dart
+
+- Botão ⏱ (histórico): `Navigator.pushNamed('/history')` e ao retornar com `HistoryEntry`, chama `viewModel.loadSession([entry])` para carregar a sessão
+- Botão ⚙ (configurações): `Navigator.pushNamed('/settings')`
+
+### Testes
+
+- `history_page_test.dart` — 14 testes (renderização com título/filtro, empty state, lista com entradas, nome, expressão/resultado, load more, favoritar com star scoped, empty favorites, diálogo de confirmação, limpar confirmado, limpar cancelado, rename dialog, rename save, expressão truncada)
+- `settings_page_test.dart` — 8 testes (renderização com todas as seções e sub-widgets, opções de tema, 9 cores, interações: tema, separador, idioma, system language scoped)
+- **Total novos: 22 testes — Total geral: 430 testes — 100% verde**
+- `flutter analyze` — zero issues
 
 ## [Não iniciado] Etapa 10 — Polimento, Integração e Revisão Final
 
