@@ -368,43 +368,7 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 
 ---
 
-## Etapa 10 — Polimento, Integração e Revisão Final
-
-### Animações e Transições
-
-- [ ] Revisar animações de todos os botões (curvas, durações)
-- [ ] Implementar transição de página animada (Calculator ↔ History ↔ Settings)
-- [ ] Animação de troca de tema global suave (AnimatedTheme ou wrap)
-- [ ] Verificar AnimatedSwitcher no display da timeline
-
-### Fluxos de Integração
-
-- [ ] Testar fluxo: calculadora → = → resultado aparece na timeline
-- [ ] Testar fluxo: calculadora → ⏱ → histórico → tocar item → timeline carregada
-- [ ] Testar fluxo: calculadora → ⚙ → mudar tema → reflexo imediato
-- [ ] Testar fluxo: calculadora → ⚙ → mudar separador → reflexo no display
-- [ ] Testar fluxo: fechar app → reabrir → preferências mantidas
-- [ ] Testar fluxo: sessão longa → load more na timeline carrega anteriores
-- [ ] Testar fluxo: histórico → load more → favoritar → filtrar → renomear
-
-### Qualidade
-
-- [ ] `flutter analyze` — zero warnings
-- [ ] `flutter test` — 100% verde
-- [ ] Verificar: nenhuma string hardcoded na UI
-- [ ] Verificar: nenhum valor de layout hardcoded
-- [ ] Verificar: nenhum `print()` no código
-- [ ] Verificar: ViewModels não importam Flutter
-- [ ] Revisar cobertura de testes
-
-### Documentação
-
-- [ ] Atualizar docs se houve desvios da arquitetura
-- [ ] Atualizar changelog
-
----
-
-## Etapa 11 — Copiar e Colar
+## Etapa 10 — Copiar e Colar
 
 ### Testes PRIMEIRO (TDD Red)
 
@@ -451,9 +415,7 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 
 ---
 
-## Etapa 12 — Futuro: Cursor Editável no Display
-
-> **Nota**: Etapa futura (não prioritária). Permitir mover a posição de inserção e editar valores em qualquer ponto da expressão.
+## Etapa 11 — Cursor Editável no Display
 
 ### Testes PRIMEIRO (TDD Red)
 
@@ -478,3 +440,243 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 - [ ] `flutter test` — 100% verde
 - [ ] `flutter analyze` — zero warnings
 - [ ] Regressão: testes anteriores continuam verdes
+
+---
+
+## Etapa 12 — Logo customizado e identidade visual
+
+### Preparação
+
+- [ ] Importar logo em `assets/branding/logo.png`
+- [ ] Adicionar variantes de densidade em `assets/branding/2.0x/logo.png` e `assets/branding/3.0x/logo.png`
+- [ ] Gerar versão monocromática para splash/contextos de uma cor
+- [ ] Criar versão adaptativa Android (foreground + background)
+
+### Geração de ícones e splash
+
+- [ ] Adicionar `flutter_launcher_icons` em `dev_dependencies`
+- [ ] Configurar `flutter_launcher_icons.yaml` para Android, iOS, web, Windows, Linux, macOS
+- [ ] Rodar `dart run flutter_launcher_icons` e versionar artefatos
+- [ ] Adicionar `flutter_native_splash` em `dev_dependencies`
+- [ ] Configurar `flutter_native_splash.yaml` (cores do tema, logo central, Android 12+)
+- [ ] Rodar `dart run flutter_native_splash:create`
+
+### Implementação no app
+
+- [ ] Criar widget `AppLogo` em `lib/ui/core/widgets/app_logo.dart` (usa `Image.asset`)
+- [ ] Declarar assets de branding no `pubspec.yaml`
+
+### Testes
+
+- [ ] Criar `test/widget/core/widgets/app_logo_test.dart`
+  - Cenários: tamanho aplicado, modo monocromático usa cor do tema
+- [ ] Verificação manual: ícone do app aparece em cada plataforma
+- [ ] Verificação manual: splash aparece com a arte correta
+
+### Validação
+
+- [ ] `flutter test` — 100% verde
+- [ ] `flutter analyze` — zero warnings
+
+---
+
+## Etapa 13 — Suporte a teclado físico
+
+### Testes PRIMEIRO (TDD Red)
+
+- [ ] Criar `test/unit/ui/calculator/keyboard_shortcuts_test.dart`
+  - Cenários: cada `LogicalKeyboardKey` mapeia para o método correto do ViewModel
+- [ ] Criar `test/widget/calculator/keyboard_shortcuts_handler_test.dart`
+  - Cenários: dígitos, operadores, Enter, Backspace, Esc/Delete, %, parênteses, Ctrl/Cmd+C/V
+  - Cenário: feedback visual (glow) é disparado pela tecla física
+  - Cenário: Backspace em estado vazio não quebra o app
+
+### Implementação (TDD Green)
+
+- [ ] Criar `lib/ui/calculator/widgets/keyboard_shortcuts_handler.dart`
+  - Mapeamento via `Shortcuts` + `Actions` (preferencial) ou `RawKeyboardListener`
+  - Cada `Intent` chama método do `CalculatorViewModel`, passando pela fila de toques
+- [ ] Envolver `CalculatorPage` com `Focus(autofocus: true)` + handler
+- [ ] Expor `triggerFeedback()` em `CalculatorButton` (ou `ValueNotifier` por tecla) para reuso visual
+- [ ] Garantir que campos de texto (rename do histórico) não interceptam atalhos globais
+- [ ] Documentar atalhos em `docs/features/calculadora.md`
+- [ ] Adicionar entradas ARB se necessário (ex: tooltip "Atalho: …")
+
+### Validação
+
+- [ ] `flutter test` — 100% verde
+- [ ] `flutter analyze` — zero warnings
+- [ ] Regressão: toques no teclado virtual continuam funcionando
+- [ ] Teste manual: operação completa apenas via teclado físico
+
+---
+
+## Etapa 14 — Suporte a Windows (com infra de desktop e title bar customizada)
+
+### Habilitação da plataforma
+
+- [ ] Rodar `flutter create --platforms=windows .`
+- [ ] Adicionar `window_manager` em `dependencies`
+- [ ] Conferir que `flutter build windows` compila
+
+### Infra de desktop compartilhada
+
+- [ ] Criar `lib/ui/core/desktop/desktop_window_config.dart`
+  - Constantes de tamanho fixo (ex: 360 × 720) e título do app
+- [ ] Criar `lib/ui/core/desktop/desktop_window_initializer.dart`
+  - `Future<void> initDesktopWindow()` com `windowManager.ensureInitialized`, `WindowOptions` (size, min/max iguais, center, `TitleBarStyle.hidden`), `setResizable(false)`
+- [ ] Criar `lib/ui/core/widgets/app_title_bar.dart`
+  - `DragToMoveArea`, logo + nome à esquerda, botões minimizar/fechar à direita
+  - Cores integradas ao `ColorScheme` atual
+  - Animações suaves no hover/press dos botões
+- [ ] Criar `lib/ui/core/widgets/desktop_shell.dart`
+  - Wrapper que adiciona `AppTitleBar` apenas em desktop (`Platform.isWindows || isLinux || isMacOS`)
+- [ ] Atualizar `main.dart` para chamar `initDesktopWindow()` em desktop e envolver com `DesktopShell`
+
+### Específico do Windows
+
+- [ ] Validar build `flutter build windows --release`
+- [ ] Conferir ícone do app integrado ao `.exe` (gerado na Etapa 12)
+- [ ] Ajustar `windows/runner/Runner.rc` (nome, versão, descrição) se necessário
+
+### Testes
+
+- [ ] Criar `test/widget/core/widgets/app_title_bar_test.dart`
+  - Cenários: renderiza logo, nome e botões; botão fechar dispara callback; hover anima
+- [ ] Criar `test/widget/core/widgets/desktop_shell_test.dart`
+  - Cenários: em desktop envolve com title bar; em mobile não adiciona title bar (mock de `Platform`)
+- [ ] Verificação manual: app abre em janela fixa, sem barra do sistema, draggable pela title bar
+
+### Validação
+
+- [ ] `flutter test` — 100% verde
+- [ ] `flutter analyze` — zero warnings
+- [ ] `flutter build windows` — sucesso
+
+---
+
+## Etapa 15 — Suporte a Linux
+
+### Habilitação da plataforma
+
+- [ ] Rodar `flutter create --platforms=linux .`
+- [ ] Conferir compatibilidade do `window_manager` no compositor alvo (X11/Wayland)
+
+### Ajustes específicos
+
+- [ ] Validar `TitleBarStyle.hidden` no GTK (X11 e, se possível, Wayland)
+- [ ] Conferir cursor de drag e botões da title bar customizada
+- [ ] Configurar `.desktop` em `linux/` (nome, ícone, categoria) se necessário
+- [ ] Documentar opções de empacotamento (AppImage/Flatpak/Snap) — sem implementar
+
+### Validação
+
+- [ ] `flutter build linux` — sucesso
+- [ ] `flutter test` — 100% verde (regressão)
+- [ ] `flutter analyze` — zero warnings
+- [ ] Verificação manual: janela fixa, title bar customizada, drag/minimizar/fechar funcionais
+
+---
+
+## Etapa 16 — Suporte a macOS
+
+### Habilitação da plataforma
+
+- [ ] Rodar `flutter create --platforms=macos .`
+- [ ] Conferir entitlements em `macos/Runner/*.entitlements`
+
+### Ajustes específicos
+
+- [ ] Esconder o botão verde de maximizar (`windowManager.setMaximizable(false)` ou `setWindowButtonVisibility`)
+- [ ] Decisão UX: manter semáforo nativo (recomendado); `AppTitleBar` em macOS exibe apenas logo + nome
+- [ ] Adicionar branch `Platform.isMacOS` em `AppTitleBar` para ocultar botões customizados de minimizar/fechar
+- [ ] Conferir ícone `.icns` (gerado na Etapa 12) integrado ao bundle
+- [ ] Documentar processo básico de assinatura/notarização — sem implementar
+
+### Testes
+
+- [ ] Atualizar `app_title_bar_test.dart` com cenário macOS (botões customizados ocultos)
+
+### Validação
+
+- [ ] `flutter build macos` — sucesso
+- [ ] `flutter test` — 100% verde
+- [ ] `flutter analyze` — zero warnings
+- [ ] Verificação manual: janela fixa com semáforo nativo, sem botão verde de maximizar
+
+---
+
+## Etapa 17 — Suporte a iOS
+
+### Habilitação da plataforma
+
+- [ ] Rodar `flutter create --platforms=ios .`
+- [ ] Configurar `ios/Runner/Info.plist` (nome, orientações apenas portrait, status bar style)
+
+### Identidade visual
+
+- [ ] Conferir que ícones e splash da Etapa 12 cobrem iOS
+- [ ] Validar `LaunchScreen.storyboard` integrado ao splash gerado
+
+### Ajustes específicos
+
+- [ ] Confirmar funcionamento de `sqflite` e `shared_preferences` no iOS
+- [ ] Validar teclado físico (Etapa 13) em iPad com Magic/Smart Keyboard
+- [ ] Conferir safe area (notch / Dynamic Island)
+
+### Validação
+
+- [ ] `flutter build ios --no-codesign` — sucesso
+- [ ] `flutter test` — 100% verde (regressão)
+- [ ] `flutter analyze` — zero warnings
+- [ ] Verificação manual: app roda no simulador iOS com paridade visual ao Android
+
+---
+
+## Etapa 18 — Polimento, Integração e Revisão Final
+
+### Animações e Transições
+
+- [ ] Revisar animações de todos os botões (curvas, durações)
+- [ ] Implementar transição de página animada (Calculator ↔ History ↔ Settings)
+- [ ] Animação de troca de tema global suave (AnimatedTheme ou wrap)
+- [ ] Verificar AnimatedSwitcher no display da timeline
+- [ ] Refinar animação de abertura/fechamento do menu de contexto (Etapa 10)
+- [ ] Refinar animação de slide horizontal e blink do cursor editável (Etapa 11)
+- [ ] Refinar hover/press dos botões da `AppTitleBar` em desktop (Etapas 14–16)
+
+### Fluxos de Integração
+
+- [ ] Testar fluxo: calculadora → = → resultado aparece na timeline
+- [ ] Testar fluxo: calculadora → ⏱ → histórico → tocar item → timeline carregada
+- [ ] Testar fluxo: calculadora → ⚙ → mudar tema → reflexo imediato
+- [ ] Testar fluxo: calculadora → ⚙ → mudar separador → reflexo no display
+- [ ] Testar fluxo: fechar app → reabrir → preferências mantidas
+- [ ] Testar fluxo: sessão longa → load more na timeline carrega anteriores
+- [ ] Testar fluxo: histórico → load more → favoritar → filtrar → renomear
+- [ ] Testar fluxo: copiar cálculo/resultado/histórico → colar em outro app e de volta na calculadora
+- [ ] Testar fluxo: colar valor inválido → snackbar de erro com texto via `context.l10n.*`
+- [ ] Testar fluxo: navegar com cursor editável → inserir/apagar no meio da expressão → confirmar com `=`
+- [ ] Verificar interação entre cursor editável, parênteses inteligentes e porcentagem literal
+- [ ] Testar fluxo: operação completa via teclado físico em desktop e mobile com teclado externo
+- [ ] Verificar que o logo e o splash aparecem corretamente em todas as plataformas
+- [ ] Verificar paridade visual entre Android, iOS, Windows, Linux e macOS
+
+### Qualidade
+
+- [ ] `flutter analyze` — zero warnings
+- [ ] `flutter test` — 100% verde
+- [ ] Verificar: nenhuma string hardcoded na UI
+- [ ] Verificar: nenhum valor de layout hardcoded
+- [ ] Verificar: nenhum `print()` no código
+- [ ] Verificar: ViewModels não importam Flutter (exceto `foundation.dart`)
+- [ ] Revisar cobertura de testes (incluindo `ClipboardService`, cursor, teclado físico, title bar)
+- [ ] Builds de release passam em todas as plataformas suportadas
+
+### Documentação
+
+- [ ] Atualizar docs se houve desvios da arquitetura
+- [ ] Documentar comportamento de copiar/colar e cursor editável em `docs/features/calculadora.md`
+- [ ] Documentar atalhos de teclado em `docs/features/calculadora.md`
+- [ ] Documentar infra de desktop (`AppTitleBar`, `DesktopShell`, `DesktopWindowConfig`) em `docs/fundacao/arquitetura.md`
+- [ ] Atualizar changelog

@@ -16,7 +16,7 @@ Notas importantes, decisões tomadas e pontos de atenção durante a implementa�
 
 ## Decisões de Arquitetura
 
-### Por que 11 etapas?
+### Por que 18 etapas?
 
 Cada etapa foi dimensionada para caber confortavelmente na janela de contexto de 172k tokens da IA, incluindo:
 
@@ -35,14 +35,19 @@ Cada etapa foi dimensionada para caber confortavelmente na janela de contexto de
 - **Etapa 7** (Fila de toques) elimina perda de toques em digitação rápida
 - **Etapa 8** (Delete contextual + parênteses) reorganiza o keypad
 - **Etapa 9** (UI Histórico/Config) conecta as demais telas e navegação
-- **Etapa 10** (Polimento) é a revisão final
-- **Etapa 11** (Cursor editável) — futuro, não prioritário
+- **Etapa 10** (Copiar e Colar) adiciona menu de contexto no display
+- **Etapa 11** (Cursor editável) permite editar a expressão no meio
+- **Etapa 12** (Logo customizado) substitui o ícone/splash padrão do Flutter
+- **Etapa 13** (Teclado físico) habilita operação completa por teclado
+- **Etapas 14-17** (Multi-plataforma) habilitam Windows, Linux, macOS e iOS — desktop com janela fixa e title bar customizada
+- **Etapa 18** (Polimento) é a revisão final cobrindo todos os fluxos e plataformas
 
 ### Divisão Lógica vs UI
 
 - **Etapas 1-4**: Toda a lógica de negócio, dados, ViewModels e infraestrutura — sem nenhuma UI
-- **Etapas 5-10**: Toda a interface visual, ajustes de comportamento, integração e polimento
-- **Etapa 11**: Futuro
+- **Etapas 5-13**: Toda a interface visual, ajustes de comportamento, features extras e identidade
+- **Etapas 14-17**: Suporte multi-plataforma (desktop e iOS)
+- **Etapa 18**: Polimento e revisão final
 - Isso permite que toda a lógica seja testada unitariamente antes de qualquer widget ser criado
 
 ### Dependência de pacotes planejada
@@ -57,6 +62,9 @@ Cada etapa foi dimensionada para caber confortavelmente na janela de contexto de
 | `intl` | Formatação e l10n |
 | `mocktail` (dev) | Mocking em testes |
 | `sqflite_common_ffi` (dev) | SQLite em memória para testes |
+| `flutter_launcher_icons` (dev) | Geração de ícones por plataforma (Etapa 12) |
+| `flutter_native_splash` (dev) | Geração de splash screens (Etapa 12) |
+| `window_manager` | Controle de janela em desktop (Etapa 14+) |
 
 ---
 
@@ -149,6 +157,32 @@ Cada etapa foi dimensionada para caber confortavelmente na janela de contexto de
 - Como não há usuários ainda, o schema pode ser alterado diretamente sem migrations versionadas
 - Quando houver versão publicada, migrations serão necessárias para preservar dados dos usuários
 
+### Logo customizado (Etapa 12)
+
+- Logo deve seguir o estilo premium/One UI: dark com acento dourado/amarelo
+- Formato: PNG com variantes de densidade (`1.0x`, `2.0x`, `3.0x`) na pasta de assets — `Image.asset` resolve automaticamente conforme o `devicePixelRatio`
+- `flutter_launcher_icons` gera os ícones por plataforma a partir do PNG fonte (em alta resolução)
+- Splash do Android 12+ tem API própria — `flutter_native_splash` cuida da configuração
+- Versionar os artefatos gerados para evitar regenerar em cada build
+
+### Teclado físico (Etapa 13)
+
+- Toda ação de teclado passa pela mesma fila da Etapa 7 — sem caminho paralelo de despacho
+- Preferir `Shortcuts` + `Actions` (mais idiomático e composável) a `RawKeyboardListener`
+- Cuidado com `TextField` (rename do histórico, busca futura) interceptando atalhos globais
+- Decidir explicitamente o mapeamento de `,` e `.` (Add2 não usa ponto literal — sugestão: ambos viram `00`)
+- Feedback visual (glow LED) ao acionar via teclado deve ser idêntico ao toque
+
+### Suporte multi-plataforma (Etapas 14–17)
+
+- Tamanho fixo da janela em desktop é decisão de UX (proporção mobile-like). Documentar bem.
+- `window_manager` é o pacote escolhido — alternativas (`bitsdojo_window`) ficam como fallback
+- macOS preserva semáforo nativo por convenção da plataforma; `AppTitleBar` adapta-se
+- Linux Wayland pode ter peculiaridades com `TitleBarStyle.hidden` — testar nos compositores principais (GNOME, KDE)
+- iOS é apenas mobile, sem janela fixa nem title bar customizada
+- Builds de release de desktop precisam validar inclusão correta dos assets de branding
+- Empacotamento (MSIX, AppImage, DMG, IPA) está fora do escopo destas etapas — apenas documentar
+
 ---
 
 ## Riscos
@@ -161,3 +195,7 @@ Cada etapa foi dimensionada para caber confortavelmente na janela de contexto de
 | Testes de SQLite em CI | Garantir que `sqflite_common_ffi` funciona no ambiente |
 | Timeline com muitos itens | Limitar itens visíveis + load more para evitar jank |
 | Histórico muito grande | Paginação via LIMIT/OFFSET no SQLite |
+| `window_manager` incompatível com Wayland em alguns compositores | Validar nos compositores principais; fallback para barra do sistema se necessário |
+| Title bar customizada quebrar convenções do macOS | Manter semáforo nativo e ajustar `AppTitleBar` por plataforma |
+| Atalhos de teclado conflitarem com `TextField` | Escopo de `Shortcuts` apenas no `CalculatorPage`, fora de campos de edição |
+| Geração de ícones desatualizada após mudança de arte | Reexecutar `flutter_launcher_icons` e versionar |
