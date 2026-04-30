@@ -27,11 +27,12 @@ O usuário digita: `1250`, `×`, `300`, `−`, `445`
 ## Funcionalidades
 
 - **Operações básicas**: Soma (+), subtração (−), multiplicação (×), divisão (÷)
-- **Porcentagem (%)**: Cálculo de porcentagem
-- **Triplo zero (000)**: Insere três zeros de uma vez, agilizando a entrada de valores altos
-- **Limpar (C)**: Reseta o display e a expressão
-- **Backspace (⌫)**: Remove o último dígito, reajustando as casas decimais automaticamente
-- **Igual (=)**: Avalia a expressão e exibe o resultado
+- **Porcentagem (%)**: Cálculo de porcentagem com exibição literal na expressão (ex: `100.00 + 10.00%`). Comportamento contextual: em `+`/`−` aplica percentual sobre o operando anterior; em `×`/`÷` converte para fração.
+- **Parênteses inteligentes ( )**: Botão único que decide entre abrir e fechar com base no contexto. Suporte a aninhamento ilimitado. Parênteses não fechados ao pressionar `=` são auto-fechados.
+- **Duplo zero (00) e triplo zero (000)**: Atalhos para entrada rápida de zeros
+- **Limpar (C)**: Reseta o display e a expressão. Cor contextual: dimmed quando não há conteúdo, primary quando há conteúdo (transição animada).
+- **Backspace (⌫)**: Disponível na barra de ícones (não no keypad). Remove o último caractere/token. Cor contextual igual ao botão `C`.
+- **Igual (=)**: Avalia a expressão, exibe o resultado, persiste no histórico e prepara nova linha
 
 ## Layout
 
@@ -51,18 +52,21 @@ Para sessões longas com muitos cálculos, a timeline exibe apenas as últimas N
 
 ### Barra de Ícones
 
-- **Ícone de relógio (⏱)**: Abre o histórico salvo
+Localizada entre a timeline e o keypad:
+
+- **Ícone de relógio (⏱)**: Abre o histórico salvo. Ao retornar com uma entrada selecionada, a sessão é carregada na timeline.
+- **Ícone de backspace (⌫)**: Apaga o último caractere/token. Cor contextual (dimmed sem conteúdo, primary com conteúdo).
 - **Ícone de configurações (⚙)**: Abre as configurações
 
 ### Keypad
 
-- **Linha 1**: C, %, ⌫, ÷
+- **Linha 1**: C, %, ( ), ÷
 - **Linha 2**: 7, 8, 9, ×
 - **Linha 3**: 4, 5, 6, −
 - **Linha 4**: 1, 2, 3, +
 - **Linha 5**: 000, 00, 0, =
 
-Botões numéricos são neutros. Operadores são destacados com cor de acento.
+Botões numéricos são neutros. Operadores e o botão `=` usam a cor `primary` (acento). Os botões `C`, `%` e `( )` são botões de ação com cor contextual.
 
 ## Regras do Add2
 
@@ -76,6 +80,10 @@ Botões numéricos são neutros. Operadores são destacados com cor de acento.
 
 Toda operação avaliada (ao pressionar `=`) é salva no histórico (SQLite) com:
 
-- Expressão completa
+- Expressão completa (preserva o `%` literal e parênteses)
 - Resultado
 - Timestamp
+
+## Fila de Toques
+
+Todo toque em qualquer botão é enfileirado e processado em ordem, mesmo durante animações de feedback. O `onPressed` é despachado no `onTapDown` (sem aguardar `tapUp`), eliminando latência. Não há `debounce`/`throttle` — toques nunca são descartados. Animações (LED glow, flash de fundo) são independentes do despacho da ação.

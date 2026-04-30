@@ -2,14 +2,14 @@
 
 ## Estilo Visual
 
-O design do WevaCalc é inspirado na **One UI (Samsung)**: elegante, escuro por padrão, com acentos em amarelo/dourado e botões circulares. O visual deve transmitir leveza e sofisticação.
+O design do WevaCalc é inspirado na **One UI (Samsung)**: elegante, escuro por padrão, com superfícies sutilmente elevadas e botões circulares. O visual deve transmitir leveza e sofisticação.
 
 ### Características Principais
 
 - **Fundo escuro** com superfícies sutilmente elevadas
-- **Botões circulares** com feedback visual suave
-- **Operadores** destacados com cor de acento (amarelo/dourado)
-- **Display** com tipografia grande e limpa
+- **Botões circulares** com feedback visual suave (LED glow no texto + flash de fundo)
+- **Operadores** destacados com a cor `primary` derivada da seed
+- **Display** com tipografia grande e limpa, escala adaptativa (48 → 36 → 28px) e fallback multiline
 - **Hierarquia visual** clara entre expressão, resultado e operações
 - Ícones **solid e rounded** do Material Icons
 
@@ -24,6 +24,17 @@ O design do WevaCalc é inspirado na **One UI (Samsung)**: elegante, escuro por 
 ### Seed Colors
 
 O app oferece 9 opções de seed color para personalização. Todas as cores do app derivam da seed escolhida via `ColorScheme.fromSeed()`.
+
+Paleta disponível (em `AppColors.seedColors`):
+
+- Blue (`#005CEE`, padrão), Emerald, Orange, Cyan, Pink, Amber, Rose, Slate, Yellow
+
+### Cores de Superfície Customizadas
+
+O `ColorScheme.fromSeed` é sobrescrito com cores de superfície próprias para reforçar a estética One UI:
+
+- **Dark**: background `#181818`, surface `#212121`, surfaceContainer `#2D2D2D`
+- **Light**: background `#F4F4F5`, surface `#FFFFFF`, surfaceContainer `#E8E8EA`
 
 ### Modos
 

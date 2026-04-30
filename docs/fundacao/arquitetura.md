@@ -107,6 +107,15 @@ void setupDependencies() {
   getIt.registerFactory<CalculatorViewModel>(
     () => CalculatorViewModel(historyRepository: getIt<HistoryRepository>()),
   );
+  getIt.registerFactory<HistoryViewModel>(
+    () => HistoryViewModel(repository: getIt<HistoryRepository>()),
+  );
+
+  // SettingsViewModel é lazy singleton — instância compartilhada entre
+  // WevaCalcApp (raiz) e SettingsPage para propagação reativa global de tema/cor/idioma.
+  getIt.registerLazySingleton<SettingsViewModel>(
+    () => SettingsViewModel(repository: getIt<SettingsRepository>()),
+  );
 }
 ```
 

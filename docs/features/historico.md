@@ -18,10 +18,12 @@ Todas as operações realizadas na calculadora são persistidas localmente em ba
 
 O histórico se integra diretamente com a timeline da calculadora:
 
-1. O usuário toca no ícone de relógio (⏱)
-2. A lista de sessões do histórico aparece (paginada)
-3. Ao tocar em uma entrada, a timeline carrega todas as linhas daquela sessão
-4. O usuário pode rolar pelas linhas e continuar o cálculo a partir daquele ponto
+1. O usuário toca no ícone de relógio (⏱) na barra de ícones
+2. A `HistoryPage` abre via `Navigator.pushNamed('/history')`
+3. Ao tocar em uma entrada, a `HistoryPage` retorna a `HistoryEntry` selecionada via `Navigator.pop(entry)`
+4. A `CalculatorPage` recebe o resultado, chama `viewModel.loadSession([entry])` e a timeline é carregada para o usuário continuar o cálculo
+
+> A `HistoryPage` não conhece o `CalculatorViewModel` — a integração respeita o SRP usando o resultado da navegação.
 
 ## Performance
 
@@ -87,12 +89,15 @@ A UI nunca acessa o banco diretamente.
 
 ## UI
 
-- Lista paginada com "load more" no final
-- Animações de entrada para cada item
-- Ícone de favorito (★) em cada item
-- Filtro: Todos / Favoritos
-- Ação de renomear via toque longo ou menu
-- Expressões longas truncadas, expandíveis
-- Ação de limpar com confirmação
-- Transição animada entre lista de histórico e timeline carregada
-- Scroll suave com comportamento natural
+- `ListView.builder` paginado com botão "Load more" no final quando `hasMore` é true
+- Filtro Todos / Favoritos via `SegmentedButton<bool>`
+- Estado vazio com ícone e texto diferenciado para "sem histórico" e "sem favoritos"
+- Cada item (`HistoryListItem`) é um `Card` com `InkWell` (radius 16) exibindo:
+  - Nome (se houver, em cor `primary`)
+  - Expressão (truncada a 30 caracteres com `...`, expandível ao toque)
+  - Resultado (`= valor`)
+  - Data/hora inteligente: hora (hoje), "Yesterday, HH:mm" (ontem), "DD/MM/YYYY, HH:mm" (outros)
+- Favorito: `IconButton` com `AnimatedSwitcher` + `ScaleTransition` (200ms) entre `star_outline_rounded` e `star_rounded`
+- Long press abre `AlertDialog` para renomear (campo de texto, submit via teclado ou botão)
+- Botão de limpar (🗑) na AppBar com `AlertDialog` de confirmação (Cancel/Delete)
+- Animação staggered de entrada: cada item anima com slide + fade (300ms, `Curves.easeOutCubic`) com delay progressivo (40ms × index, max 10)
