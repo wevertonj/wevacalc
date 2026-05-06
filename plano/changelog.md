@@ -657,4 +657,162 @@ Widget customizado que substituiu o `TextField` padrão no display da calculador
 
 ---
 
-## [Não iniciado] Etapa 11 — Cursor Editável no Display
+## [Concluída] Etapa 11 — Cursor Editável no Display
+
+### CalculatorViewModel — API de cursor
+
+- `cursorPosition` (int) — offset de caractere em `fullDisplayText`; por padrão acompanha o final automaticamente
+- `isEditingMidExpression` (bool) — indica modo de edição mid-expression
+- `moveCursorLeft()` / `moveCursorRight()` — navegação com bounds; ao sair do final entra em modo de edição
+- `setCursorPosition(int)` — posicionamento direto com clamp; voltar ao final sai do modo de edição
+- Modo de edição mantém `_editText` como fonte da verdade enquanto o cursor está no meio
+- `inputDigit`, `inputDoubleZero`, `inputTripleZero`, `setOperator`, `applyPercentage`, `inputParenthesis`, `backspace` operam sobre o buffer editável quando ativo
+- `equals` no modo de edição avalia o texto (com normalização de separadores), persiste no histórico e sai do modo de edição
+- `clear`, `loadSession` e `pasteFromClipboard` saem do modo de edição e restauram cursor ao final
+- `previewResult` no modo de edição avalia `_editText` em tempo real (com normalização de milhares e separador decimal)
+- `_normalizeForEvaluator` — remove separadores de milhar e converte separador decimal configurado de volta para `.`
+
+### AnimatedInputDisplay
+
+- Novos props: `cursorPosition` (int?), `cursorColor` (Color?), `onCharTap` (callback)
+- `_BlinkingCursor` — barra vertical piscante via `Timer.periodic` (não usa `AnimationController`, mantendo `pumpAndSettle` desbloqueado)
+- Cursor inserido entre os widgets de caractere na posição indicada (modo single-line)
+- Cada caractere envolto em `GestureDetector` com `behavior: opaque` e `onTapDown` para tap responsivo
+
+### TimelineDisplay & CalculatorPage
+
+- `TimelineDisplay` propaga `cursorPosition`, `onCharTap`, `onSwipeLeft` e `onSwipeRight` para o display
+- `_buildCurrentInput` envolto em `GestureDetector.onHorizontalDragEnd` com threshold de velocidade ±200 px/s
+- `CalculatorPage` conecta toque em caractere → `setCursorPosition`, swipe → `moveCursorLeft/Right`
+
+### Testes
+
+- `calculator_view_model_test.dart` — +14 testes do grupo `cursor` (default em fim de texto, follows end, move left/right, bounds, no-op nos limites, notify, clear/equals reset, inserção/backspace/operador no meio, `previewResult` em modo edição)
+- `animated_input_display_cursor_test.dart` — 3 testes (cursor ausente quando posição é null, presente quando informado, `onCharTap` recebe índice correto)
+- **Total novos: 17 testes — Total geral: 499 testes — 100% verde**
+- `flutter analyze` — zero issues
+
+## [Fix] Etapa 11 — Edição Add2-aware no modo cursor
+
+### Problema reportado
+
+- Inserir dígitos com o cursor dentro de um valor não reaplicava Add2 (ex.: `2,37` + `1` virava `2,371` em vez de `23,71`)
+- Pressionar `=` "arredondava" o resultado por consumir o texto literal sem reformatar
+- Pressionar operador no meio de um número partia a expressão de forma inesperada
+
+### Correção
+
+- `_editInsertDigits` — extrai os dígitos brutos do bloco numérico circundante (detectado por `_findNumberBlock` sobre `[0-9.,%]`), insere o(s) novo(s) dígito(s) na posição correta dentro do bloco e re-formata via `NumberFormatter.format` (Add2 + separadores configurados)
+- `_editBackspace` — reformata o bloco quando o cursor está sobre dígitos; nas bordas (entre operadores/parênteses) remove o caractere literal
+- `setOperator` em modo edição — agora **salta o cursor para o fim do bloco numérico** antes de inserir ` op `, evitando partir o número ao meio
+- `inputParenthesis` em modo edição — também salta para o fim do bloco antes de decidir entre `(` e `)`
+- `applyPercentage` em modo edição — anexa `%` ao final do bloco (no-op se já termina em `%`)
+
+### Testes
+
+- 2 testes de cursor atualizados para refletir o comportamento Add2 correto:
+  - `backspace in middle deletes a digit and re-applies Add2` — `12.34` → backspace digit → `1.24`
+  - `setOperator in middle snaps to end of block then appends` — `12.50` cursor no meio + `+` → `12.50 + `
+- 3 novos testes:
+  - `inputDigit in middle re-applies Add2 to the number block` — `2.37` + `1` no meio → `23.17`
+  - `inputDigit appended at end of block reformats with Add2` — bloco recebe digit no fim e reformata
+  - `= evaluates the edited expression with Add2-formatted values` — fluxo completo de edição → operador → digit → `=`
+- Total: **503 testes — 100% verde** | `flutter analyze` zero issues
+
+## [Fix] Etapa 11 — Cursor ancorado pelos dígitos à direita
+
+### Problema reportado
+
+Em `( 1,500.00 ÷ 2.00 ) + 50.00`, com o cursor em `2.0|0`:
+- Backspace produzia `0.|20` (cursor pulava uma casa para frente) em vez de `0.2|0`
+- Após digitar `3`, virava `03.2|0` em vez de `02.3|0`
+- Após digitar `4`, virava `32.4|0` em vez de `23.4|0`
+
+### Causa raiz
+
+A regra anterior de restauração do cursor preservava "número de dígitos antes do cursor" (`_positionAfterDigits`). Como Add2 padroniza com **zero à esquerda** quando o raw encurta (raw `20` → display `0.20`), esse zero "fake" deslocava a contagem e o cursor pulava.
+
+### Correção
+
+Trocada a política de ancoragem para preservar o número de **dígitos à direita do cursor** (`_positionWithDigitsAfter`):
+
+- Backspace mantém digits-after constante (não muda dígitos depois do cursor)
+- Inserção também mantém digits-after constante (cursor avança junto com os dígitos inseridos)
+- O lado direito é a referência estável; o padding com zero à esquerda fica transparente para o usuário
+
+Cenário do bug agora produz exatamente o que o usuário descreveu:
+- `2.0|0` → backspace → `0.2|0`
+- `0.2|0` → digito `3` → `2.3|0`
+- `2.3|0` → digito `4` → `23.4|0` ✓
+
+### Testes
+
+- 1 teste de regressão exato do cenário reportado:
+  - `cursor stays anchored to trailing digits across delete + insert` — reproduz o trace completo do bug
+- 1 teste de cursor atualizado (`inputDigit in middle inserts at cursor`) — `12|.50` + `7` → `127.50` cursor em pos 4 (`127.|50`) com a nova regra
+- Total: **504 testes — 100% verde** | `flutter analyze` zero issues
+
+## [Fix] Etapa 11 — Operador parte/mescla blocos + crash na previewResult
+
+### Problemas reportados
+
+1. **Crash** ao apertar `+` em um valor editado: `RangeError (length): Invalid value: Only valid value is 0: 1` em `ExpressionEvaluator._evaluateTokens`
+2. **Operador no meio do bloco**: ao digitar `+` o operador era anexado ao fim do bloco em vez de partir o bloco em duas metades
+3. **Backspace no operador** deveria mesclar os blocos vizinhos, mas removia apenas um espaço
+
+### Correções
+
+#### `ExpressionEvaluator` defensivo (`lib/domain/expression_evaluator.dart`)
+
+- Guard `if (i + 1 >= numbers.length) return null;` adicionado antes dos acessos `numbers[i + 1]` nos dois passes (× ÷ e + −) — expressões malformadas (operador sem RHS, parênteses com operandos faltantes) agora retornam `null` em vez de crashar
+
+#### Operador parte o bloco (`_editSplitBlockWithOperator`)
+
+- Quando há dígitos à esquerda E à direita do cursor dentro de um bloco, o bloco é dividido em duas metades reformatadas via Add2 (`12.50` cursor entre `2` e `.` + `+` → `0.12 + 0.50`)
+- Nas bordas (cursor sem dígitos antes ou sem dígitos depois) o operador é inserido literalmente como ` op ` — comportamento atual de "anexa no limite" preservado
+- Cursor pousa imediatamente após o operador inserido
+
+#### Backspace mescla blocos (`_tryMergeBlocksAtCursor`)
+
+- Quando o caractere antes do cursor é o espaço final de um padrão ` op ` entre dois blocos, o operador inteiro é removido e os blocos são mesclados
+- **Raws são normalizados via `int.parse`** para descartar o padding de zero do Add2 antes da concatenação: `0.12` + `0.50` → `12` + `50` → `12.50` (não `120.50`)
+- Cursor preserva digits-after = `rightDigits.length`, ficando no boundary visual entre as duas metades originais
+
+#### Modo de edição persiste
+
+- `moveCursorRight` e `setCursorPosition` **não saem mais automaticamente** do modo de edição ao chegar no fim do texto — antes, isso descartava silenciosamente as edições feitas (ex.: `2.37` editado para `23.17` voltava a `2.37` se o cursor chegasse ao fim)
+- Modo de edição agora só termina em `equals()`, `clear()`, `loadSession()` ou `_applyPastedTokens()`
+
+### Testes
+
+- 4 testes atualizados / 1 novo:
+  - `setOperator in middle splits the block into two halves` — `12.50` cursor pos 2 + `+` → `0.12 + 0.50`
+  - `backspace on operator merges surrounding blocks via Add2` — após split, backspace reverte a `12.50`
+  - `setOperator at start of block appends literally (no split)` — borda → ` + 12.50`
+  - `backspace at start of right block merges adjacent blocks` — `0.12 + 0.34` backspace na pos 7 → `12.34`
+  - `previewResult returns null for trailing operator (no crash)` — guard contra o crash
+- Total: **507 testes — 100% verde** | `flutter analyze` zero issues
+
+## [Fix] Etapa 11 — Cursor invisível em modo multiline
+
+### Problema
+
+Quando a expressão crescia além da largura da tela, o display entrava em modo `multiline` (Wrap) e o cursor **não era renderizado**. Sintomas:
+
+- Após adicionar um novo bloco que estourava a linha, o cursor sumia
+- Sem feedback visual, toques para reposicionar pareciam não funcionar
+- Backspace continuava operando na posição lógica antiga (correta no estado), mas como o usuário não enxergava o cursor, parecia que ele "deletava do começo aleatoriamente"
+
+### Correção
+
+`AnimatedInputDisplay._groupIntoTokens` agora aceita `cursorPos` e `cursor`, injetando o widget do cursor no fluxo de tokens:
+
+- Cursor dentro de um número (entre dígitos): fica preso ao mesmo grupo da `Row`, garantindo que o `Wrap` não quebre linha entre dígito e cursor
+- Cursor em fronteira (espaço/operador): emitido como token próprio, podendo ser ponto natural de quebra
+- Cursor no fim do texto: preso ao último grupo se houver, senão como token isolado
+
+### Testes
+
+- `renders cursor in multiline mode` — cursor mid-block visível em modo Wrap
+- `renders cursor at end of text in multiline mode` — cursor no fim visível em modo Wrap
+- Total: **509 testes — 100% verde** | `flutter analyze` zero issues

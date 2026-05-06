@@ -12,6 +12,11 @@ class TimelineDisplay extends StatefulWidget {
   final bool hasMore;
   final VoidCallback onLoadMore;
   final TextEditingController displayController;
+  final int? cursorPosition;
+  final void Function(int index)? onCharTap;
+  final VoidCallback? onSwipeLeft;
+  final VoidCallback? onSwipeRight;
+  final VoidCallback? onTapOutside;
 
   const TimelineDisplay({
     super.key,
@@ -21,6 +26,11 @@ class TimelineDisplay extends StatefulWidget {
     required this.hasMore,
     required this.onLoadMore,
     required this.displayController,
+    this.cursorPosition,
+    this.onCharTap,
+    this.onSwipeLeft,
+    this.onSwipeRight,
+    this.onTapOutside,
   });
 
   @override
@@ -201,55 +211,70 @@ class _TimelineDisplayState extends State<TimelineDisplay>
   Widget _buildCurrentInput(ColorScheme colors) {
     final hasPreview = widget.previewResult != null;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Full expression with per-character animation
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final (:fontSize, :multiline) = _calculateFontLayout(
-              widget.displayText,
-              constraints.maxWidth,
-              FontWeight.w300,
-            );
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: widget.onTapOutside,
+      onHorizontalDragEnd: (details) {
+        final v = details.primaryVelocity ?? 0;
+        if (v < -200) {
+          widget.onSwipeLeft?.call();
+        } else if (v > 200) {
+          widget.onSwipeRight?.call();
+        }
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Full expression with per-character animation
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final (:fontSize, :multiline) = _calculateFontLayout(
+                widget.displayText,
+                constraints.maxWidth,
+                FontWeight.w300,
+              );
 
-            return SizedBox(
-              width: double.infinity,
-              child: AnimatedInputDisplay(
-                text: widget.displayText,
-                fontSize: fontSize,
-                fontWeight: FontWeight.w300,
-                textColor: colors.onSurface,
+              return SizedBox(
+                width: double.infinity,
+                child: AnimatedInputDisplay(
+                  text: widget.displayText,
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.w300,
+                  textColor: colors.onSurface,
 
-                operatorColor: colors.primary,
-                multiline: multiline,
-              ),
-            );
-          },
-        ),
-        // Preview line — always reserved, never occupied by the calculation
-        Padding(
-          padding: EdgeInsets.only(
-            top: AppLayout.spacing.xs,
-            bottom: AppLayout.spacing.small,
+                  operatorColor: colors.primary,
+                  multiline: multiline,
+                  cursorPosition: widget.cursorPosition,
+                  cursorColor: colors.primary,
+                  onCharTap: widget.onCharTap,
+                ),
+              );
+            },
           ),
-          child: AnimatedOpacity(
-            opacity: hasPreview ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOutQuart,
-            child: Text(
-              hasPreview ? widget.previewResult! : '',
-              style: TextStyle(
-                color: colors.onSurface.withValues(alpha: 0.35),
-                fontSize: 28,
-                fontWeight: FontWeight.w300,
+          // Preview line — always reserved, never occupied by the calculation
+          Padding(
+            padding: EdgeInsets.only(
+              top: AppLayout.spacing.xs,
+              bottom: AppLayout.spacing.small,
+            ),
+            child: AnimatedOpacity(
+              opacity: hasPreview ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutQuart,
+              child: Text(
+                hasPreview ? widget.previewResult! : '',
+                style: TextStyle(
+                  color: colors.onSurface.withValues(alpha: 0.35),
+                  fontSize: 28,
+                  fontWeight: FontWeight.w300,
+                ),
+                textAlign: TextAlign.right,
               ),
-              textAlign: TextAlign.right,
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

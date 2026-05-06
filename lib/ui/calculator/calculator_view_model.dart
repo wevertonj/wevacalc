@@ -81,6 +81,21 @@ class CalculatorViewModel extends ChangeNotifier {
   int _visibleCount = 20;
   DecimalSeparator _decimalSeparator = DecimalSeparator.dot;
 
+  /// Editable text buffer used when the cursor is positioned somewhere
+  /// other than the end of the expression. While non-null, this string
+  /// is the source of truth for [fullDisplayText] and operations route
+  /// through string-level edits.
+  String? _editText;
+
+  /// Cursor character offset inside [_editText]. Only valid while
+  /// [_editText] is non-null. When [_atEnd] is true, the visible cursor
+  /// follows the end of [fullDisplayText] regardless of this value.
+  int _cursorPos = 0;
+
+  /// True when the cursor virtually follows the end of [fullDisplayText].
+  /// When false, [_cursorPos] (or [_editText]'s offset) is authoritative.
+  bool _atEnd = true;
+
   static const int _loadMoreCount = 20;
 
   int get maxVisibleEntries => _visibleCount;
@@ -120,6 +135,9 @@ class CalculatorViewModel extends ChangeNotifier {
   /// committed tokens, an active operand, a pending operator, an in-flight
   /// post-equals result, or session timeline entries.
   bool get hasContent {
+    if (_editText != null && _editText!.isNotEmpty && _editText != '0.00') {
+      return true;
+    }
     if (_committed.isNotEmpty) return true;
     if (_engineActive) return true;
     if (_pendingOperator != null) return true;
@@ -132,6 +150,8 @@ class CalculatorViewModel extends ChangeNotifier {
   /// Full display text — the entire expression on a single line.
   /// e.g., "7856.00", "7856.00 ×", "7856.00 × 52.00", "100.00 + 10.00%".
   String get fullDisplayText {
+    if (_editText != null) return _editText!;
+
     final parts = <String>[];
     for (final t in _committed) {
       parts.add(_formatPart(t));
@@ -168,6 +188,15 @@ class CalculatorViewModel extends ChangeNotifier {
   }
 
   String? get previewResult {
+    if (_editText != null) {
+      final raw = _normalizeForEvaluator(_editText!);
+      if (raw.trim().isEmpty) return null;
+      final result = _evaluator.evaluate(raw);
+      if (result == null) return null;
+
+      return _formatValue(result);
+    }
+
     if (_committed.isEmpty) return null;
 
     final hasActiveInput = _engineActive && _pendingOperator != null;
@@ -220,6 +249,12 @@ class CalculatorViewModel extends ChangeNotifier {
 
   void inputDigit(String digit) {
     _runAction(() {
+      if (_editText != null) {
+        _editInsertDigits(digit);
+        notifyListeners();
+
+        return;
+      }
       if (!_canInputDigit()) return;
       _prepareForDigitInput();
       _add2Engine.inputDigit(digit);
@@ -230,6 +265,12 @@ class CalculatorViewModel extends ChangeNotifier {
 
   void inputDoubleZero() {
     _runAction(() {
+      if (_editText != null) {
+        _editInsertDigits('00');
+        notifyListeners();
+
+        return;
+      }
       if (!_canInputDigit()) return;
       _prepareForDigitInput();
       _add2Engine.inputDoubleZero();
@@ -240,6 +281,12 @@ class CalculatorViewModel extends ChangeNotifier {
 
   void inputTripleZero() {
     _runAction(() {
+      if (_editText != null) {
+        _editInsertDigits('000');
+        notifyListeners();
+
+        return;
+      }
       if (!_canInputDigit()) return;
       _prepareForDigitInput();
       _add2Engine.inputTripleZero();
@@ -280,6 +327,12 @@ class CalculatorViewModel extends ChangeNotifier {
 
   void setOperator(String operator) {
     _runAction(() {
+      if (_editText != null) {
+        _editSplitBlockWithOperator(operator);
+        notifyListeners();
+
+        return;
+      }
       _shouldResetOnInput = false;
 
       if (_engineActive) {
@@ -302,6 +355,12 @@ class CalculatorViewModel extends ChangeNotifier {
 
   void applyPercentage() {
     _runAction(() {
+      if (_editText != null) {
+        _editApplyPercentInBlock();
+        notifyListeners();
+
+        return;
+      }
       if (_pendingOperator == null) return;
       if (!_engineActive) return;
       if (_add2Engine.isEmpty) return;
@@ -318,6 +377,18 @@ class CalculatorViewModel extends ChangeNotifier {
   /// `(` and the last token is a complete operand.
   void inputParenthesis() {
     _runAction(() {
+      if (_editText != null) {
+        // When inside a number block, snap to its end so the parenthesis
+        // is placed at a natural boundary instead of splitting digits.
+        _snapCursorToBlockEnd();
+        final before = _cursorPos > 0 ? _editText![_cursorPos - 1] : ' ';
+        final shouldClose =
+            before == ')' || before == '%' || _digitRegExp.hasMatch(before);
+        _editInsertLiteral(shouldClose ? ')' : '(');
+        notifyListeners();
+
+        return;
+      }
       if (_canCloseParen()) {
         _insertCloseParen();
         notifyListeners();
@@ -380,6 +451,38 @@ class CalculatorViewModel extends ChangeNotifier {
 
   void equals() {
     _runAction(() {
+      if (_editText != null) {
+        final raw = _normalizeForEvaluator(_editText!);
+        if (raw.trim().isEmpty) return;
+        // Need at least one operator anywhere to be evaluable.
+        if (!RegExp(r'[+\u2212\u00d7\u00f7]').hasMatch(raw)) return;
+        final result = _evaluator.evaluate(raw);
+        if (result == null) return;
+
+        final formattedExpression = _formatExpression(raw);
+        final formattedResult = _formatValue(result);
+
+        final calculation = Calculation(
+          expression: formattedExpression,
+          result: formattedResult,
+          timestamp: DateTime.now(),
+        );
+        _timelineEntries.add(calculation);
+        _sessionLines.add(HistoryLine(expression: raw, result: result));
+        _saveOrUpdateSession();
+
+        _exitEditMode();
+        _committed.clear();
+        _pendingOperator = null;
+        _engineActive = false;
+        _shouldResetOnInput = true;
+        _currentIsPercentage = false;
+        _add2Engine.setValue(_parseToInt(result));
+        _atEnd = true;
+        notifyListeners();
+
+        return;
+      }
       // Need at least one operator anywhere to be evaluable.
       final hasOperator =
           _pendingOperator != null || _committed.any(_isOperator);
@@ -430,11 +533,13 @@ class CalculatorViewModel extends ChangeNotifier {
 
   void clear() {
     _runAction(() {
-      if (!hasContent) return;
+      if (!hasContent && _editText == null) return;
 
       // Save/update the current session to history before clearing.
       _saveOrUpdateSession();
 
+      _exitEditMode();
+      _atEnd = true;
       _add2Engine.reset();
       _committed.clear();
       _pendingOperator = null;
@@ -451,6 +556,12 @@ class CalculatorViewModel extends ChangeNotifier {
 
   void backspace() {
     _runAction(() {
+      if (_editText != null) {
+        _editBackspace();
+        notifyListeners();
+
+        return;
+      }
       // Drop the literal `%` marker first if active.
       if (_currentIsPercentage) {
         _currentIsPercentage = false;
@@ -540,6 +651,429 @@ class CalculatorViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ----- Cursor / edit mode --------------------------------------------
+
+  /// Current cursor position as a character offset in [fullDisplayText].
+  /// Defaults to the end of the text and follows it as the text grows.
+  int get cursorPosition {
+    if (_atEnd) return fullDisplayText.length;
+
+    return _cursorPos;
+  }
+
+  /// True when the cursor is in "edit mode" (positioned somewhere other
+  /// than the end of the expression). Used by getters that need to switch
+  /// behavior in this mode.
+  bool get isEditingMidExpression => _editText != null;
+
+  /// True when the cursor is at the end of [fullDisplayText] (either the
+  /// virtual at-end position or explicitly at [fullDisplayText.length]).
+  /// The cursor is hidden in this state even while edit mode is active.
+  bool get isCursorAtEnd => _atEnd;
+
+  /// Moves the cursor one character to the left, entering edit mode if
+  /// the cursor was previously at the end of the expression.
+  void moveCursorLeft() {
+    _runAction(() {
+      _enterEditMode();
+      if (_cursorPos > 0) {
+        _cursorPos--;
+        _atEnd = false;
+      }
+      notifyListeners();
+    });
+  }
+
+  /// Moves the cursor one character to the right. When the cursor reaches
+  /// the end of the text in edit mode, it snaps to the at-end position
+  /// (cursor becomes hidden) without exiting edit mode — so the user's
+  /// edits are preserved.
+  void moveCursorRight() {
+    _runAction(() {
+      final text = fullDisplayText;
+      if (_atEnd) return;
+      if (_cursorPos < text.length) {
+        _cursorPos++;
+      }
+      _atEnd = _cursorPos >= text.length;
+      notifyListeners();
+    });
+  }
+
+  /// Moves the cursor to the end of [fullDisplayText], hiding it without
+  /// exiting edit mode. Called when the user taps the empty area around
+  /// the display.
+  void moveCursorToEnd() {
+    _runAction(() {
+      if (_editText == null) return;
+      _atEnd = true;
+      _cursorPos = _editText!.length;
+      notifyListeners();
+    });
+  }
+
+  /// Sets the cursor to an explicit character offset in [fullDisplayText].
+  /// Out-of-range values are clamped. Edit mode is entered the first time
+  /// the cursor is moved away from the end and persists until the session
+  /// is reset (equals, clear, loadSession, paste).
+  void setCursorPosition(int position) {
+    _runAction(() {
+      final text = fullDisplayText;
+      var clamped = position;
+      if (clamped < 0) clamped = 0;
+      if (clamped > text.length) clamped = text.length;
+
+      if (clamped == text.length) {
+        // Tapping at/past the end always moves cursor to the at-end
+        // (hidden) position, whether or not edit mode is active.
+        _atEnd = true;
+        _cursorPos = clamped;
+        notifyListeners();
+
+        return;
+      }
+
+      _enterEditMode();
+      _cursorPos = clamped;
+      _atEnd = false;
+      notifyListeners();
+    });
+  }
+
+  void _enterEditMode() {
+    if (_editText != null) return;
+    _editText = fullDisplayText;
+    _cursorPos = _editText!.length;
+  }
+
+  void _exitEditMode() {
+    _editText = null;
+    _cursorPos = 0;
+  }
+
+  static final RegExp _digitRegExp = RegExp(r'[0-9]');
+  static final RegExp _numberCharRegExp = RegExp(r'[0-9.,%]');
+
+  /// Inserts the digit string [digits] (only `0-9` chars) at the current
+  /// cursor position, applying Add2 formatting to the surrounding number
+  /// block. The block is detected from contiguous number-like chars
+  /// (digits, decimal/thousand separators, optional trailing `%`).
+  void _editInsertDigits(String digits) {
+    final text = _editText!;
+    final block = _findNumberBlock(text, _cursorPos);
+    final raw = _stripToDigits(text.substring(block.start, block.end));
+    final hasPercent = block.end > block.start && text[block.end - 1] == '%';
+    final digitsBeforeCursor = _countDigits(text, block.start, _cursorPos);
+    final digitsAfterCursor = raw.length - digitsBeforeCursor;
+
+    final newRaw =
+        raw.substring(0, digitsBeforeCursor) +
+        digits +
+        raw.substring(digitsBeforeCursor);
+    // Preserve digitsAfterCursor: the cursor lands immediately after the
+    // newly inserted digits, keeping the same number of digits to its right
+    // as before the insertion. This is robust to Add2's leading-zero padding.
+    final newDigitsAfterCursor = digitsAfterCursor;
+
+    _replaceBlockWithFormatted(
+      text,
+      block.start,
+      block.end,
+      newRaw,
+      hasPercent,
+      newDigitsAfterCursor,
+    );
+  }
+
+  /// Inserts the literal string [s] (operators, parentheses, spaces) at the
+  /// current cursor position without re-formatting. Used for non-digit input.
+  void _editInsertLiteral(String s) {
+    final text = _editText!;
+    _editText = text.substring(0, _cursorPos) + s + text.substring(_cursorPos);
+    _cursorPos += s.length;
+    _atEnd = _cursorPos >= _editText!.length;
+  }
+
+  /// Removes one digit from the surrounding number block (re-formatting
+  /// the block via Add2). When the char immediately before the cursor is an
+  /// operator (` op `), removes the entire operator-with-spaces and merges
+  /// the two surrounding number blocks via Add2 (concatenated raw digits).
+  /// Outside number blocks, falls back to deleting the literal char.
+  void _editBackspace() {
+    if (_cursorPos <= 0) return;
+    final text = _editText!;
+    final block = _findNumberBlock(text, _cursorPos);
+    final raw = _stripToDigits(text.substring(block.start, block.end));
+    final digitsBeforeCursor = _countDigits(text, block.start, _cursorPos);
+
+    if (raw.isEmpty || digitsBeforeCursor == 0) {
+      // Cursor is at a non-digit boundary. Detect the operator-with-spaces
+      // pattern (` op ` where op ∈ +−×÷) immediately before the cursor and
+      // merge the surrounding blocks if present.
+      final merged = _tryMergeBlocksAtCursor();
+      if (merged) return;
+
+      // Plain literal char delete.
+      _editText =
+          text.substring(0, _cursorPos - 1) + text.substring(_cursorPos);
+      _cursorPos--;
+      _atEnd = _cursorPos >= _editText!.length;
+
+      return;
+    }
+
+    final hasPercent = block.end > block.start && text[block.end - 1] == '%';
+    final digitsAfterCursor = raw.length - digitsBeforeCursor;
+    final newRaw =
+        raw.substring(0, digitsBeforeCursor - 1) +
+        raw.substring(digitsBeforeCursor);
+    // Preserve digitsAfterCursor: removing a digit BEFORE the cursor does
+    // not change how many digits are AFTER it, so the cursor stays anchored
+    // to the same trailing digit (immune to Add2's leading-zero padding).
+    final newDigitsAfterCursor = digitsAfterCursor;
+
+    _replaceBlockWithFormatted(
+      text,
+      block.start,
+      block.end,
+      newRaw,
+      hasPercent,
+      newDigitsAfterCursor,
+    );
+  }
+
+  /// Inserts an operator at the current cursor position. When the cursor
+  /// lies in the middle of a number block (digits on both sides), the block
+  /// is split into two Add2-formatted halves with ` op ` between them.
+  /// At block boundaries (start, end, or outside any block), the operator
+  /// is inserted as a literal ` op ` without splitting.
+  ///
+  /// Cursor lands immediately after the inserted operator.
+  void _editSplitBlockWithOperator(String operator) {
+    final text = _editText!;
+    final block = _findNumberBlock(text, _cursorPos);
+    final raw = _stripToDigits(text.substring(block.start, block.end));
+    final digitsBeforeCursor = _countDigits(text, block.start, _cursorPos);
+    final digitsAfterCursor = raw.length - digitsBeforeCursor;
+
+    // No surrounding block, or cursor at a boundary — append literally.
+    if (raw.isEmpty || digitsBeforeCursor == 0 || digitsAfterCursor == 0) {
+      _editInsertLiteral(' $operator ');
+
+      return;
+    }
+
+    final hasPercent = block.end > block.start && text[block.end - 1] == '%';
+    final leftRaw = raw.substring(0, digitsBeforeCursor);
+    final rightRaw = raw.substring(digitsBeforeCursor);
+
+    final leftCore = NumberFormatter.format(
+      int.parse(leftRaw),
+      separator: _decimalSeparator,
+      useThousandsSeparator: true,
+    );
+    final rightCore = NumberFormatter.format(
+      int.parse(rightRaw),
+      separator: _decimalSeparator,
+      useThousandsSeparator: true,
+    );
+
+    // Percent suffix (if any) belongs to the right half — it was at the
+    // tail of the original block.
+    final rightBlock = rightCore + (hasPercent ? '%' : '');
+    final replacement = '$leftCore $operator $rightBlock';
+
+    _editText =
+        text.substring(0, block.start) +
+        replacement +
+        text.substring(block.end);
+
+    // Cursor lands immediately after the inserted operator (after the
+    // trailing space): position = block.start + leftCore.length + 3
+    // (' ' + op + ' ').
+    _cursorPos = block.start + leftCore.length + 3;
+    _atEnd = _cursorPos >= _editText!.length;
+  }
+
+  /// Detects whether the chars immediately before the cursor form an
+  /// operator-with-spaces sequence (` op `) sandwiched between two number
+  /// blocks. If so, removes the operator (and its surrounding spaces) and
+  /// merges the two blocks by concatenating their raw digits and re-applying
+  /// Add2. Returns true on a successful merge, false otherwise.
+  bool _tryMergeBlocksAtCursor() {
+    final text = _editText!;
+    // Pattern is " op " ending exactly at _cursorPos: chars at
+    // _cursorPos-3 = ' ', _cursorPos-2 = op, _cursorPos-1 = ' '.
+    if (_cursorPos < 3) return false;
+    if (text[_cursorPos - 1] != ' ') return false;
+    final op = text[_cursorPos - 2];
+    if (!(op == '+' || op == '−' || op == '×' || op == '÷')) return false;
+    if (text[_cursorPos - 3] != ' ') return false;
+
+    final leftBlock = _findNumberBlock(text, _cursorPos - 3);
+    final rightBlock = _findNumberBlock(text, _cursorPos);
+    if (leftBlock.end == leftBlock.start) return false;
+    if (rightBlock.end == rightBlock.start) return false;
+
+    final leftRawPadded = _stripToDigits(
+      text.substring(leftBlock.start, leftBlock.end),
+    );
+    final rightRawPadded = _stripToDigits(
+      text.substring(rightBlock.start, rightBlock.end),
+    );
+    if (leftRawPadded.isEmpty && rightRawPadded.isEmpty) return false;
+
+    // Normalize each side to its integer value (drops Add2's mandatory
+    // leading-zero padding). Concatenating the un-padded digit strings
+    // gives the user's intuitive merge: '0.12' + '0.50' -> '12.50'.
+    final leftDigits = leftRawPadded.isEmpty
+        ? ''
+        : int.parse(leftRawPadded).toString();
+    final rightDigits = rightRawPadded.isEmpty
+        ? ''
+        : int.parse(rightRawPadded).toString();
+
+    final rightHasPercent =
+        rightBlock.end > rightBlock.start && text[rightBlock.end - 1] == '%';
+    final mergedRaw = leftDigits + rightDigits;
+    // Cursor anchors to the boundary between left and right halves —
+    // i.e., the position with `rightDigits.length` digits to its right.
+    final newDigitsAfterCursor = rightDigits.length;
+
+    _replaceBlockWithFormatted(
+      text,
+      leftBlock.start,
+      rightBlock.end,
+      mergedRaw,
+      rightHasPercent,
+      newDigitsAfterCursor,
+    );
+
+    return true;
+  }
+
+  /// Snaps the cursor to the end of the number block surrounding it (no-op
+  /// when the cursor is not inside a block).
+  void _snapCursorToBlockEnd() {
+    final text = _editText!;
+    final block = _findNumberBlock(text, _cursorPos);
+    if (block.end > _cursorPos) {
+      _cursorPos = block.end;
+      _atEnd = _cursorPos >= text.length;
+    }
+  }
+
+  /// Appends a literal `%` to the end of the number block surrounding the
+  /// cursor. No-op when there is no block, or when the block already ends
+  /// with `%`.
+  void _editApplyPercentInBlock() {
+    final text = _editText!;
+    final block = _findNumberBlock(text, _cursorPos);
+    if (block.end == block.start) return;
+    if (text[block.end - 1] == '%') return;
+
+    _editText = '${text.substring(0, block.end)}%${text.substring(block.end)}';
+    _cursorPos = block.end + 1;
+    _atEnd = _cursorPos >= _editText!.length;
+  }
+
+  /// Replaces the substring [text] [start..end) with the Add2-formatted
+  /// representation of [newRaw] (digit-only string), restoring the optional
+  /// `%` suffix and positioning the cursor so that exactly
+  /// [newDigitsAfterCursor] digit characters of the new block lie after it.
+  ///
+  /// Anchoring the cursor by digits-after (rather than digits-before) keeps
+  /// it visually stable when Add2 pads the block with a leading zero — the
+  /// trailing digits are the stable reference, not the volatile leading edge.
+  void _replaceBlockWithFormatted(
+    String text,
+    int start,
+    int end,
+    String newRaw,
+    bool hasPercent,
+    int newDigitsAfterCursor,
+  ) {
+    final newCore = newRaw.isEmpty
+        ? ''
+        : NumberFormatter.format(
+            int.parse(newRaw),
+            separator: _decimalSeparator,
+            useThousandsSeparator: true,
+          );
+    final newBlock = newCore + (hasPercent ? '%' : '');
+
+    _editText = text.substring(0, start) + newBlock + text.substring(end);
+
+    final cursorOffsetInBlock = newCore.isEmpty
+        ? 0
+        : _positionWithDigitsAfter(newCore, newDigitsAfterCursor);
+    _cursorPos = start + cursorOffsetInBlock;
+    _atEnd = _cursorPos >= _editText!.length;
+  }
+
+  /// Finds the maximal range of contiguous number-like characters
+  /// containing position [pos] in [text]. Returns a zero-length range at
+  /// [pos] when the cursor is not adjacent to any number-like char.
+  ({int start, int end}) _findNumberBlock(String text, int pos) {
+    var s = pos;
+    var e = pos;
+    while (s > 0 && _numberCharRegExp.hasMatch(text[s - 1])) {
+      s--;
+    }
+    while (e < text.length && _numberCharRegExp.hasMatch(text[e])) {
+      e++;
+    }
+
+    return (start: s, end: e);
+  }
+
+  String _stripToDigits(String s) {
+    final buffer = StringBuffer();
+    for (var i = 0; i < s.length; i++) {
+      if (_digitRegExp.hasMatch(s[i])) buffer.write(s[i]);
+    }
+
+    return buffer.toString();
+  }
+
+  int _countDigits(String text, int start, int end) {
+    var n = 0;
+    for (var i = start; i < end; i++) {
+      if (_digitRegExp.hasMatch(text[i])) n++;
+    }
+
+    return n;
+  }
+
+  /// Returns the offset in [formatted] such that exactly [digitCount] digit
+  /// characters follow it. Clamps to `[0, formatted.length]`.
+  int _positionWithDigitsAfter(String formatted, int digitCount) {
+    if (digitCount <= 0) return formatted.length;
+    var seen = 0;
+    for (var i = formatted.length - 1; i >= 0; i--) {
+      if (_digitRegExp.hasMatch(formatted[i])) {
+        seen++;
+        if (seen >= digitCount) return i;
+      }
+    }
+
+    return 0;
+  }
+
+  /// Normalizes the formatted edit text into a string the
+  /// [ExpressionEvaluator] can parse: removes thousand separators and
+  /// converts the configured decimal separator back to a dot.
+  String _normalizeForEvaluator(String text) {
+    final thousands = _decimalSeparator == DecimalSeparator.dot ? ',' : '.';
+    final decimal = _decimalSeparator.character;
+    var t = text.replaceAll(thousands, '');
+    if (decimal != '.') {
+      t = t.replaceAll(decimal, '.');
+    }
+
+    return t;
+  }
+
   /// Loads a history session into the calculator, restoring the timeline
   /// up to (and including) the specified [selection.lineIndex].
   ///
@@ -549,6 +1083,8 @@ class CalculatorViewModel extends ChangeNotifier {
     // Save any existing session before overwriting.
     _saveOrUpdateSession();
 
+    _exitEditMode();
+    _atEnd = true;
     _timelineEntries.clear();
     _sessionLines.clear();
 
@@ -836,6 +1372,8 @@ class CalculatorViewModel extends ChangeNotifier {
     // Replace existing in-progress state. Persist any pending session first
     // so the user does not silently lose committed work.
     _saveOrUpdateSession();
+    _exitEditMode();
+    _atEnd = true;
     _add2Engine.reset();
     _committed.clear();
     _pendingOperator = null;

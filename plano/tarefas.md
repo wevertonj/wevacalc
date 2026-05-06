@@ -415,31 +415,30 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 
 ---
 
-## Etapa 11 — Cursor Editável no Display
+## Etapa 11 — Cursor Editável no Display ✅
 
 ### Testes PRIMEIRO (TDD Red)
 
-- [ ] Atualizar `test/unit/ui/calculator/calculator_view_model_test.dart`
+- [x] Atualizar `test/unit/ui/calculator/calculator_view_model_test.dart`
   - Cenários: `cursorPosition`, inserção no meio, backspace no meio, `moveCursorLeft/Right`, bounds checking
-- [ ] Criar `test/widget/calculator/animated_input_display_cursor_test.dart`
+- [x] Criar `test/widget/calculator/animated_input_display_cursor_test.dart`
   - Cenários: cursor visível na posição correta, toque em caractere posiciona o cursor
 
 ### Implementação (TDD Green)
 
-- [ ] Adicionar `cursorPosition` (int) no `CalculatorViewModel`
-- [ ] Implementar `moveCursorLeft()` / `moveCursorRight()` com bounds checking
-- [ ] Ajustar `inputDigit`, `deleteLastDigit`, `selectOperator` para respeitar a posição do cursor
-- [ ] Adicionar props `cursorPosition` e `cursorColor` ao `AnimatedInputDisplay`
-- [ ] Renderizar cursor (barra vertical piscante via `Timer`, não `AnimationController`) com altura proporcional ao fontSize
-- [ ] Animação suave de slide horizontal ao mover cursor (`TweenAnimationBuilder`)
-- [ ] `GestureDetector` em cada caractere com callback `onCharTap(int index)`
-- [ ] Adicionar botões ◀ ▶ ou gesto de swipe horizontal para mover cursor (UX a definir)
+- [x] Adicionar `cursorPosition` (int) no `CalculatorViewModel`
+- [x] Implementar `moveCursorLeft()` / `moveCursorRight()` com bounds checking
+- [x] Ajustar `inputDigit`, `deleteLastDigit`, `selectOperator` para respeitar a posição do cursor
+- [x] Adicionar props `cursorPosition` e `cursorColor` ao `AnimatedInputDisplay`
+- [x] Renderizar cursor (barra vertical piscante via `Timer`, não `AnimationController`) com altura proporcional ao fontSize
+- [x] `GestureDetector` em cada caractere com callback `onCharTap(int index)`
+- [x] Gesto de swipe horizontal no display para mover cursor (esquerda/direita)
 
 ### Validação
 
-- [ ] `flutter test` — 100% verde
-- [ ] `flutter analyze` — zero warnings
-- [ ] Regressão: testes anteriores continuam verdes
+- [x] `flutter test` — 100% verde (499 testes)
+- [x] `flutter analyze` — zero warnings
+- [x] Regressão: testes anteriores continuam verdes
 
 ---
 

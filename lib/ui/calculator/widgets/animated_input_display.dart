@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -13,6 +14,9 @@ class AnimatedInputDisplay extends StatefulWidget {
   final Color textColor;
   final Color operatorColor;
   final bool multiline;
+  final int? cursorPosition;
+  final Color? cursorColor;
+  final void Function(int index)? onCharTap;
 
   const AnimatedInputDisplay({
     super.key,
@@ -22,6 +26,9 @@ class AnimatedInputDisplay extends StatefulWidget {
     required this.textColor,
     required this.operatorColor,
     this.multiline = false,
+    this.cursorPosition,
+    this.cursorColor,
+    this.onCharTap,
   });
 
   @override
@@ -152,10 +159,19 @@ class _AnimatedInputDisplayState extends State<AnimatedInputDisplay> {
   }
 
   Widget _buildContent(double fontSize) {
-    final charWidgets = [for (final slot in _slots) _buildChar(slot, fontSize)];
+    final charWidgets = <Widget>[
+      for (int i = 0; i < _slots.length; i++)
+        _wrapTappable(i, _buildChar(_slots[i], fontSize)),
+    ];
+
+    final cursorPos = widget.cursorPosition;
 
     if (widget.multiline) {
-      final tokenWidgets = _groupIntoTokens(charWidgets);
+      final tokenWidgets = _groupIntoTokens(
+        charWidgets,
+        cursorPos: cursorPos,
+        cursor: cursorPos != null ? _buildCursor(fontSize) : null,
+      );
 
       return Wrap(
         alignment: WrapAlignment.end,
@@ -164,7 +180,16 @@ class _AnimatedInputDisplayState extends State<AnimatedInputDisplay> {
       );
     }
 
-    final children = [...charWidgets];
+    final children = <Widget>[];
+    for (int i = 0; i < charWidgets.length; i++) {
+      if (cursorPos != null && cursorPos == i) {
+        children.add(_buildCursor(fontSize));
+      }
+      children.add(charWidgets[i]);
+    }
+    if (cursorPos != null && cursorPos >= charWidgets.length) {
+      children.add(_buildCursor(fontSize));
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -182,6 +207,26 @@ class _AnimatedInputDisplayState extends State<AnimatedInputDisplay> {
           ),
         );
       },
+    );
+  }
+
+  Widget _wrapTappable(int index, Widget child) {
+    if (widget.onCharTap == null) return child;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => widget.onCharTap!(index),
+      child: child,
+    );
+  }
+
+  Widget _buildCursor(double fontSize) {
+    final color = widget.cursorColor ?? widget.textColor;
+
+    return _BlinkingCursor(
+      key: const ValueKey('display-cursor'),
+      height: fontSize,
+      color: color,
     );
   }
 
@@ -216,31 +261,58 @@ class _AnimatedInputDisplayState extends State<AnimatedInputDisplay> {
 
   /// Groups individual character widgets into token rows so that Wrap
   /// only breaks between tokens (operators/spaces), never mid-number.
-  List<Widget> _groupIntoTokens(List<Widget> charWidgets) {
+  ///
+  /// When [cursor] is non-null, it is inserted at [cursorPos] — kept inside
+  /// the current number group when possible (so the line never breaks
+  /// between a digit and the cursor), or as its own token at boundaries.
+  List<Widget> _groupIntoTokens(
+    List<Widget> charWidgets, {
+    int? cursorPos,
+    Widget? cursor,
+  }) {
     final tokens = <Widget>[];
     var currentGroup = <Widget>[];
 
+    void flushGroup() {
+      if (currentGroup.isNotEmpty) {
+        tokens.add(Row(mainAxisSize: MainAxisSize.min, children: currentGroup));
+        currentGroup = [];
+      }
+    }
+
     for (int i = 0; i < _slots.length; i++) {
+      if (cursor != null && cursorPos == i) {
+        // Cursor at this index: keep it attached to the next char if we're
+        // inside (or about to start) a number group; otherwise emit as its
+        // own token. Look-ahead: next char is part of a number → group it.
+        final nextChar = _slots[i].char;
+        final nextIsNumberLike = nextChar != ' ' && !_isOperator(nextChar);
+        if (nextIsNumberLike || currentGroup.isNotEmpty) {
+          currentGroup.add(cursor);
+        } else {
+          flushGroup();
+          tokens.add(cursor);
+        }
+      }
       final char = _slots[i].char;
       if (char == ' ' || _isOperator(char)) {
-        // Flush current number group
-        if (currentGroup.isNotEmpty) {
-          tokens.add(
-            Row(mainAxisSize: MainAxisSize.min, children: currentGroup),
-          );
-          currentGroup = [];
-        }
-        // Operator/space as its own token
+        flushGroup();
         tokens.add(charWidgets[i]);
       } else {
         currentGroup.add(charWidgets[i]);
       }
     }
 
-    // Flush remaining group
-    if (currentGroup.isNotEmpty) {
-      tokens.add(Row(mainAxisSize: MainAxisSize.min, children: currentGroup));
+    // Cursor at end of text.
+    if (cursor != null && cursorPos == _slots.length) {
+      if (currentGroup.isNotEmpty) {
+        currentGroup.add(cursor);
+      } else {
+        tokens.add(cursor);
+      }
     }
+
+    flushGroup();
 
     return tokens;
   }
@@ -367,6 +439,57 @@ class _RollingChar extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Blinking vertical cursor used to indicate the current insertion point.
+/// Uses a [Timer] (not an [AnimationController]) so widget tests using
+/// `pumpAndSettle` are not blocked by the steady-state blink.
+class _BlinkingCursor extends StatefulWidget {
+  final double height;
+  final Color color;
+
+  const _BlinkingCursor({super.key, required this.height, required this.color});
+
+  @override
+  State<_BlinkingCursor> createState() => _BlinkingCursorState();
+}
+
+class _BlinkingCursorState extends State<_BlinkingCursor> {
+  Timer? _timer;
+  bool _visible = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(milliseconds: 530), (_) {
+      if (mounted) setState(() => _visible = !_visible);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 1),
+      child: SizedBox(
+        width: 2,
+        height: widget.height,
+        child: _visible
+            ? DecoratedBox(
+                decoration: BoxDecoration(
+                  color: widget.color,
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              )
+            : const SizedBox.shrink(),
+      ),
     );
   }
 }

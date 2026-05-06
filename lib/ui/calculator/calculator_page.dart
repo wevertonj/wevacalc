@@ -87,6 +87,14 @@ class _CalculatorPageState extends State<CalculatorPage> {
                   hasMore: vm.hasMoreTimelineEntries,
                   onLoadMore: vm.loadMoreTimelineEntries,
                   displayController: _displayController,
+                  cursorPosition:
+                      (vm.isEditingMidExpression && !vm.isCursorAtEnd)
+                      ? vm.cursorPosition
+                      : null,
+                  onCharTap: vm.setCursorPosition,
+                  onSwipeLeft: vm.moveCursorRight,
+                  onSwipeRight: vm.moveCursorLeft,
+                  onTapOutside: vm.moveCursorToEnd,
                 ),
               ),
             ),

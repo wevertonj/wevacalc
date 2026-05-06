@@ -198,6 +198,7 @@ class ExpressionEvaluator {
     var i = 0;
     while (i < operators.length) {
       if (operators[i] == '×' || operators[i] == '÷') {
+        if (i + 1 >= numbers.length) return null;
         final left = numbers[i];
         final right = numbers[i + 1];
         double result;
@@ -220,6 +221,7 @@ class ExpressionEvaluator {
     // Second pass: handle + and − (lower precedence)
     var result = numbers[0];
     for (i = 0; i < operators.length; i++) {
+      if (i + 1 >= numbers.length) return null;
       if (operators[i] == '+') {
         result += numbers[i + 1];
       } else if (operators[i] == '−') {

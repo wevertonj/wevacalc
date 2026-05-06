@@ -116,3 +116,43 @@ Conteúdo inválido exibe um snackbar com mensagem localizada (`pasteInvalid`). 
 - `PasteInputParser` (em `lib/utils/`) converte texto bruto em tokens normalizados (`x.yy`, operadores, parênteses, `%`)
 - `CalculatorViewModel` expõe `copyExpression()`, `copyResult()`, `copyHistory()`, `pasteFromClipboard()` e os getters `hasExpression`, `hasResult`, `hasHistory` para a UI
 - `CalculatorContextMenu` (widget) renderiza o menu via `showMenu`, ancorado na posição global do toque longo
+
+## Cursor Editável
+
+O display suporta um cursor de edição que permite navegar e modificar a expressão em qualquer ponto, não apenas no final.
+
+### Movimentação do cursor
+
+- **Toque em um caractere**: posiciona o cursor imediatamente antes do caractere tocado (`onCharTap` → `setCursorPosition`)
+- **Swipe horizontal no display**: arrastar para a esquerda move o cursor à direita; arrastar para a direita move à esquerda (threshold ±200 px/s)
+- **Apagar do teclado** (⌫) sempre opera relativo à posição atual do cursor
+- Ao mover o cursor para fora do final, a calculadora entra em **modo de edição mid-expression**; ao retornar ao final, volta ao modo normal automaticamente
+
+### Modo de edição
+
+No modo de edição o display permanece **consciente do bloco numérico** sob o cursor — toda inserção ou remoção de dígito reaplica a formatação Add2 ao bloco circundante (separador decimal, separador de milhar e o `%` opcional são preservados). Uma vez ativado (cursor movido para fora do final), o modo de edição **persiste** até `=`, `C`, carregamento de histórico ou colagem.
+
+- **Dígitos** (`0`–`9`, `00`, `000`) são inseridos na posição do cursor dentro do bloco numérico atual; o bloco inteiro é reformatado via Add2 (`23.71` em vez de `2,371` quando se digita `1` após `2,37`)
+- **Operadores** (`+`, `−`, `×`, `÷`) **partem o bloco em duas metades** quando há dígitos em ambos os lados do cursor (`12.50` cursor entre `2` e `.` + `+` → `0.12 + 0.50`); nas bordas (cursor sem dígitos antes ou sem dígitos depois) o operador é inserido literalmente como ` op `
+- **`%`** é anexado ao final do bloco numérico atual (no-op quando o bloco já termina em `%`)
+- **`( )`** salta para o fim do bloco numérico e então decide entre `(` e `)` com base no caractere imediatamente à esquerda do cursor
+- **⌫** dentro de um bloco numérico remove um dígito e reformata o bloco via Add2; quando o caractere imediatamente antes do cursor é parte de um operador-com-espaços (` op ` entre dois blocos), o operador é removido inteiro e os blocos vizinhos são **mesclados** via Add2 (raws normalizados via `int.parse` para descartar zeros de padding); fora dos blocos remove o caractere literal
+- **`=`** avalia o texto editado, normalizando separadores de milhar e o separador decimal configurado, e grava o resultado na timeline
+- **C** sai do modo de edição e limpa toda a sessão
+
+A prévia de resultado (`previewResult`) é recalculada em tempo real a partir do texto editado. O `ExpressionEvaluator` retorna `null` para expressões malformadas (operador pendurado, parêntese vazio etc.), mantendo a UI segura contra exceções durante a edição.
+
+### Visual do cursor
+
+O cursor é uma barra vertical fina (2 px de largura) na cor `colorScheme.primary`, com altura proporcional ao `fontSize` atual do display. O blink usa `Timer.periodic(530ms)` em vez de `AnimationController`, evitando que widget tests com `pumpAndSettle` fiquem bloqueados.
+
+Em modo **multiline** (quando a expressão estoura a largura e o display usa `Wrap`), o cursor continua sendo renderizado: ele é injetado no fluxo de tokens de modo a ficar preso ao grupo numérico atual (impede quebra de linha entre dígito e cursor) ou como token próprio em fronteiras (espaço/operador, ponto natural de quebra).
+
+### Implementação
+
+- `CalculatorViewModel` mantém `cursorPosition` (int), `_editText` (String?) e `_atEnd` (bool)
+- O bloco numérico sob o cursor é detectado pela faixa máxima de caracteres `[0-9.,%]` contígua (`_findNumberBlock`); inserções e remoções operam sobre os dígitos brutos do bloco e o resultado é re-formatado via `NumberFormatter.format` aplicando Add2
+- **Ancoragem do cursor por dígitos-à-direita**: após cada reformatação Add2, o cursor é restaurado de modo a preservar exatamente o mesmo número de dígitos à sua direita dentro do bloco. Como Add2 padroniza com zero à esquerda (raw `20` → `0.20`), o lado direito é a referência estável; ancorar pela esquerda faria o cursor pular a cada padding/depadding
+- `_normalizeForEvaluator` converte o texto formatado para a forma canônica esperada pelo `ExpressionEvaluator`
+- `AnimatedInputDisplay` recebe `cursorPosition`, `cursorColor` e `onCharTap` e renderiza o cursor entre os widgets de caractere
+- `TimelineDisplay` envolve o display em `GestureDetector.onHorizontalDragEnd` para o swipe
