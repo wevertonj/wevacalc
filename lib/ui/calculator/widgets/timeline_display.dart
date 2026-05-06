@@ -211,23 +211,26 @@ class _TimelineDisplayState extends State<TimelineDisplay>
   Widget _buildCurrentInput(ColorScheme colors) {
     final hasPreview = widget.previewResult != null;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: widget.onTapOutside,
-      onHorizontalDragEnd: (details) {
-        final v = details.primaryVelocity ?? 0;
-        if (v < -200) {
-          widget.onSwipeLeft?.call();
-        } else if (v > 200) {
-          widget.onSwipeRight?.call();
-        }
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Full expression with per-character animation
-          LayoutBuilder(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Full expression with per-character animation. The gesture
+        // detector wraps ONLY this area so taps on the empty space
+        // around the expression move the cursor to the end, while
+        // taps on the preview line below are ignored.
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onTapOutside,
+          onHorizontalDragEnd: (details) {
+            final v = details.primaryVelocity ?? 0;
+            if (v < -200) {
+              widget.onSwipeLeft?.call();
+            } else if (v > 200) {
+              widget.onSwipeRight?.call();
+            }
+          },
+          child: LayoutBuilder(
             builder: (context, constraints) {
               final (:fontSize, :multiline) = _calculateFontLayout(
                 widget.displayText,
@@ -252,29 +255,29 @@ class _TimelineDisplayState extends State<TimelineDisplay>
               );
             },
           ),
-          // Preview line — always reserved, never occupied by the calculation
-          Padding(
-            padding: EdgeInsets.only(
-              top: AppLayout.spacing.xs,
-              bottom: AppLayout.spacing.small,
-            ),
-            child: AnimatedOpacity(
-              opacity: hasPreview ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOutQuart,
-              child: Text(
-                hasPreview ? widget.previewResult! : '',
-                style: TextStyle(
-                  color: colors.onSurface.withValues(alpha: 0.35),
-                  fontSize: 28,
-                  fontWeight: FontWeight.w300,
-                ),
-                textAlign: TextAlign.right,
+        ),
+        // Preview line — always reserved, never occupied by the calculation
+        Padding(
+          padding: EdgeInsets.only(
+            top: AppLayout.spacing.xs,
+            bottom: AppLayout.spacing.small,
+          ),
+          child: AnimatedOpacity(
+            opacity: hasPreview ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOutQuart,
+            child: Text(
+              hasPreview ? widget.previewResult! : '',
+              style: TextStyle(
+                color: colors.onSurface.withValues(alpha: 0.35),
+                fontSize: 28,
+                fontWeight: FontWeight.w300,
               ),
+              textAlign: TextAlign.right,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

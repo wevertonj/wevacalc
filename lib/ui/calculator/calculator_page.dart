@@ -92,8 +92,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
                       ? vm.cursorPosition
                       : null,
                   onCharTap: vm.setCursorPosition,
-                  onSwipeLeft: vm.moveCursorRight,
-                  onSwipeRight: vm.moveCursorLeft,
+                  onSwipeLeft: vm.moveCursorLeft,
+                  onSwipeRight: vm.moveCursorRight,
                   onTapOutside: vm.moveCursorToEnd,
                 ),
               ),

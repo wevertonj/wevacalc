@@ -215,7 +215,12 @@ class _AnimatedInputDisplayState extends State<AnimatedInputDisplay> {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
+      // onTapDown fires immediately for fast cursor placement.
       onTapDown: (_) => widget.onCharTap!(index),
+      // Empty onTap claims the gesture arena so the surrounding
+      // GestureDetector's onTap (e.g., "move cursor to end") does not
+      // fire when a character is tapped.
+      onTap: () {},
       child: child,
     );
   }
