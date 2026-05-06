@@ -107,4 +107,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get languageSystem => 'System';
+
+  @override
+  String get copyExpression => 'Copy calculation';
+
+  @override
+  String get copyResult => 'Copy result';
+
+  @override
+  String get copyHistory => 'Copy history';
+
+  @override
+  String get paste => 'Paste';
+
+  @override
+  String get pasteInvalid => 'Invalid clipboard content';
+
+  @override
+  String get copied => 'Copied';
 }

@@ -297,6 +297,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'System'**
   String get languageSystem;
+
+  /// Context menu option to copy the current expression
+  ///
+  /// In en, this message translates to:
+  /// **'Copy calculation'**
+  String get copyExpression;
+
+  /// Context menu option to copy the current result
+  ///
+  /// In en, this message translates to:
+  /// **'Copy result'**
+  String get copyResult;
+
+  /// Context menu option to copy all session timeline entries
+  ///
+  /// In en, this message translates to:
+  /// **'Copy history'**
+  String get copyHistory;
+
+  /// Context menu option to paste from the system clipboard
+  ///
+  /// In en, this message translates to:
+  /// **'Paste'**
+  String get paste;
+
+  /// Snackbar message shown when pasted clipboard text is not a valid number or expression
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid clipboard content'**
+  String get pasteInvalid;
+
+  /// Snackbar message confirming a successful copy
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get copied;
 }
 
 class _AppLocalizationsDelegate

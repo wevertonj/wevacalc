@@ -107,4 +107,22 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get languageSystem => 'Sistema';
+
+  @override
+  String get copyExpression => 'Copiar cálculo';
+
+  @override
+  String get copyResult => 'Copiar resultado';
+
+  @override
+  String get copyHistory => 'Copiar histórico';
+
+  @override
+  String get paste => 'Colar';
+
+  @override
+  String get pasteInvalid => 'Conteúdo inválido para colar';
+
+  @override
+  String get copied => 'Copiado';
 }

@@ -19,6 +19,7 @@ lib/
 ├── data/                      # Camada de dados
 │   ├── database/              # SQLite: helper, migrations
 │   ├── repositories/          # Interface + Implementação
+│   ├── services/              # Serviços externos (clipboard, etc.)
 │   └── models/                # Models para serialização do banco
 │
 ├── domain/                    # Regras de negócio

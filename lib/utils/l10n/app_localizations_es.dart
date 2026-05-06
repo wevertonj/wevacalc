@@ -107,4 +107,22 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get languageSystem => 'Sistema';
+
+  @override
+  String get copyExpression => 'Copiar cálculo';
+
+  @override
+  String get copyResult => 'Copiar resultado';
+
+  @override
+  String get copyHistory => 'Copiar historial';
+
+  @override
+  String get paste => 'Pegar';
+
+  @override
+  String get pasteInvalid => 'Contenido inválido para pegar';
+
+  @override
+  String get copied => 'Copiado';
 }

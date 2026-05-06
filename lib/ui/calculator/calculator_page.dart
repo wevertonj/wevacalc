@@ -4,6 +4,7 @@ import 'package:wevacalc/config/routes.dart';
 import 'package:wevacalc/config/theme/app_layout.dart';
 import 'package:wevacalc/domain/entities/history_selection.dart';
 import 'package:wevacalc/ui/calculator/calculator_view_model.dart';
+import 'package:wevacalc/ui/calculator/widgets/calculator_context_menu.dart';
 import 'package:wevacalc/ui/calculator/widgets/calculator_keypad.dart';
 import 'package:wevacalc/ui/calculator/widgets/timeline_display.dart';
 
@@ -27,6 +28,15 @@ class _CalculatorPageState extends State<CalculatorPage> {
     );
     widget.viewModel.addListener(_onViewModelChanged);
     widget.viewModel.loadSettings();
+  }
+
+  @override
+  void didUpdateWidget(covariant CalculatorPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.viewModel != widget.viewModel) {
+      oldWidget.viewModel.removeListener(_onViewModelChanged);
+      widget.viewModel.addListener(_onViewModelChanged);
+    }
   }
 
   @override
@@ -63,13 +73,21 @@ class _CalculatorPageState extends State<CalculatorPage> {
         child: Column(
           children: [
             Expanded(
-              child: TimelineDisplay(
-                entries: vm.visibleTimelineEntries,
-                displayText: vm.fullDisplayText,
-                previewResult: vm.previewResult,
-                hasMore: vm.hasMoreTimelineEntries,
-                onLoadMore: vm.loadMoreTimelineEntries,
-                displayController: _displayController,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onLongPressStart: (details) => CalculatorContextMenu.show(
+                  context: context,
+                  viewModel: vm,
+                  position: details.globalPosition,
+                ),
+                child: TimelineDisplay(
+                  entries: vm.visibleTimelineEntries,
+                  displayText: vm.fullDisplayText,
+                  previewResult: vm.previewResult,
+                  hasMore: vm.hasMoreTimelineEntries,
+                  onLoadMore: vm.loadMoreTimelineEntries,
+                  displayController: _displayController,
+                ),
               ),
             ),
             _buildIconBar(colors),
@@ -77,7 +95,9 @@ class _CalculatorPageState extends State<CalculatorPage> {
               color: colors.surfaceContainer,
               padding: EdgeInsets.only(
                 top: AppLayout.padding.medium,
-                bottom: AppLayout.padding.medium + MediaQuery.paddingOf(context).bottom,
+                bottom:
+                    AppLayout.padding.medium +
+                    MediaQuery.paddingOf(context).bottom,
               ),
               child: CalculatorKeypad(
                 onDigit: vm.inputDigit,
@@ -116,9 +136,9 @@ class _CalculatorPageState extends State<CalculatorPage> {
             style: iconStyle,
             icon: Icon(Icons.history_rounded, color: dimmedColor),
             onPressed: () async {
-              final result = await Navigator.of(context).pushNamed(
-                AppRoutes.history,
-              );
+              final result = await Navigator.of(
+                context,
+              ).pushNamed(AppRoutes.history);
               if (result is HistorySelection) {
                 widget.viewModel.loadSession(result);
               }
@@ -127,8 +147,9 @@ class _CalculatorPageState extends State<CalculatorPage> {
           IconButton(
             style: iconStyle,
             icon: Icon(Icons.settings_rounded, color: dimmedColor),
-            onPressed: () {
-              Navigator.of(context).pushNamed(AppRoutes.settings);
+            onPressed: () async {
+              await Navigator.of(context).pushNamed(AppRoutes.settings);
+              widget.viewModel.loadSettings();
             },
           ),
           const Spacer(),

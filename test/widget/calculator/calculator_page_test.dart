@@ -13,17 +13,23 @@ import 'package:wevacalc/ui/calculator/widgets/calculator_keypad.dart';
 import 'package:wevacalc/ui/calculator/widgets/timeline_display.dart';
 
 import '../../helpers/pump_app.dart';
+import '../../mocks/mock_clipboard_service.dart';
 import '../../mocks/mock_history_repository.dart';
 import '../../mocks/mock_settings_repository.dart';
 
 void main() {
   late MockHistoryRepository mockHistoryRepository;
   late MockSettingsRepository mockSettingsRepository;
+  late MockClipboardService mockClipboardService;
   late CalculatorViewModel viewModel;
 
   setUpAll(() {
     registerFallbackValue(
-      HistoryEntry(lines: [HistoryLine(expression: '', result: '')], result: '', createdAt: DateTime.now()),
+      HistoryEntry(
+        lines: [HistoryLine(expression: '', result: '')],
+        result: '',
+        createdAt: DateTime.now(),
+      ),
     );
     registerFallbackValue(DecimalSeparator.dot);
   });
@@ -31,6 +37,7 @@ void main() {
   setUp(() {
     mockHistoryRepository = MockHistoryRepository();
     mockSettingsRepository = MockSettingsRepository();
+    mockClipboardService = MockClipboardService();
     when(() => mockHistoryRepository.add(any())).thenAnswer(
       (_) async => HistoryEntry(
         id: 1,
@@ -42,9 +49,12 @@ void main() {
     when(
       () => mockSettingsRepository.getDecimalSeparator(),
     ).thenAnswer((_) async => DecimalSeparator.dot);
+    when(() => mockClipboardService.copyText(any())).thenAnswer((_) async {});
+    when(() => mockClipboardService.readText()).thenAnswer((_) async => null);
     viewModel = CalculatorViewModel(
       historyRepository: mockHistoryRepository,
       settingsRepository: mockSettingsRepository,
+      clipboardService: mockClipboardService,
     );
   });
 

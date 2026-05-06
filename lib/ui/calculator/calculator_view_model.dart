@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:wevacalc/data/repositories/history_repository.dart';
 import 'package:wevacalc/data/repositories/settings_repository.dart';
+import 'package:wevacalc/data/services/clipboard_service.dart';
 import 'package:wevacalc/domain/add2_engine.dart';
 import 'package:wevacalc/domain/entities/calculation.dart';
 import 'package:wevacalc/domain/entities/history_entry.dart';
@@ -12,16 +13,20 @@ import 'package:wevacalc/domain/entities/history_selection.dart';
 import 'package:wevacalc/domain/enums/decimal_separator.dart';
 import 'package:wevacalc/domain/expression_evaluator.dart';
 import 'package:wevacalc/utils/formatters/number_formatter.dart';
+import 'package:wevacalc/utils/paste_input_parser.dart';
 
 class CalculatorViewModel extends ChangeNotifier {
   CalculatorViewModel({
     required HistoryRepository historyRepository,
     required SettingsRepository settingsRepository,
+    required ClipboardService clipboardService,
   }) : _historyRepository = historyRepository,
-       _settingsRepository = settingsRepository;
+       _settingsRepository = settingsRepository,
+       _clipboardService = clipboardService;
 
   final HistoryRepository _historyRepository;
   final SettingsRepository _settingsRepository;
+  final ClipboardService _clipboardService;
   final Add2Engine _add2Engine = Add2Engine();
   final ExpressionEvaluator _evaluator = ExpressionEvaluator();
 
@@ -739,5 +744,129 @@ class CalculatorViewModel extends ChangeNotifier {
     final formatted = tokens.map(_formatPart);
 
     return formatted.join(' ');
+  }
+
+  // ----- Clipboard ------------------------------------------------------
+
+  /// True when there is anything currently typed (committed tokens, an
+  /// active operand, or a pending operator) that could be copied as an
+  /// expression.
+  bool get hasExpression {
+    if (_committed.isNotEmpty) return true;
+    if (_engineActive) return true;
+    if (_pendingOperator != null) return true;
+
+    return false;
+  }
+
+  /// True when there is a numeric result available — either a live preview
+  /// or the result of the most recent `=`.
+  bool get hasResult {
+    if (previewResult != null) return true;
+    if (_shouldResetOnInput && !_add2Engine.isEmpty) return true;
+
+    return false;
+  }
+
+  /// True when there is at least one calculation in the session timeline.
+  bool get hasHistory => _timelineEntries.isNotEmpty;
+
+  /// Copies the current expression text (e.g., `1000.00 + 10.00%`) to the
+  /// clipboard. No-op when [hasExpression] is false.
+  Future<void> copyExpression() async {
+    if (!hasExpression) return;
+
+    await _clipboardService.copyText(fullDisplayText);
+  }
+
+  /// Copies the current result (preview or post-`=` value) to the clipboard.
+  /// No-op when [hasResult] is false.
+  Future<void> copyResult() async {
+    final preview = previewResult;
+    if (preview != null) {
+      await _clipboardService.copyText(preview);
+
+      return;
+    }
+
+    if (_shouldResetOnInput && !_add2Engine.isEmpty) {
+      await _clipboardService.copyText(currentDisplayValue);
+    }
+  }
+
+  /// Copies all session timeline entries to the clipboard, one per line in
+  /// the format `<expression> = <result>`.
+  Future<void> copyHistory() async {
+    if (_timelineEntries.isEmpty) return;
+
+    final buffer = StringBuffer();
+    for (var i = 0; i < _timelineEntries.length; i++) {
+      if (i > 0) buffer.writeln();
+      final entry = _timelineEntries[i];
+      buffer.write('${entry.expression} = ${entry.result}');
+    }
+
+    await _clipboardService.copyText(buffer.toString());
+  }
+
+  /// Reads text from the clipboard, parses and applies it to the calculator
+  /// state. Returns `true` on success, `false` when the clipboard is empty
+  /// or its contents cannot be interpreted as a number/expression.
+  Future<bool> pasteFromClipboard() async {
+    final raw = await _clipboardService.readText();
+    if (raw == null) return false;
+
+    final tokens = PasteInputParser.parse(raw);
+    if (tokens == null) return false;
+
+    _runAction(() => _applyPastedTokens(tokens));
+
+    return true;
+  }
+
+  /// True when the clipboard currently contains text. Used by the context
+  /// menu to enable/disable the paste entry without committing to a paste.
+  Future<bool> clipboardHasText() async {
+    final raw = await _clipboardService.readText();
+
+    return raw != null && raw.isNotEmpty;
+  }
+
+  void _applyPastedTokens(List<String> tokens) {
+    // Replace existing in-progress state. Persist any pending session first
+    // so the user does not silently lose committed work.
+    _saveOrUpdateSession();
+    _add2Engine.reset();
+    _committed.clear();
+    _pendingOperator = null;
+    _engineActive = false;
+    _shouldResetOnInput = false;
+    _currentIsPercentage = false;
+    _timelineEntries.clear();
+    _sessionLines.clear();
+    _currentSessionId = null;
+    _persistedLineCount = 0;
+
+    final last = tokens.last;
+    if (_isOperator(last)) {
+      _committed.addAll(tokens.sublist(0, tokens.length - 1));
+      _pendingOperator = last;
+    } else if (last == ')') {
+      _committed.addAll(tokens);
+    } else {
+      // Last token is a numeric operand (possibly suffixed with `%`).
+      // If the token before it is an operator, promote that operator to
+      // `_pendingOperator` so the engine value represents the right-hand
+      // side of an in-progress binary expression (enables previewResult).
+      var rest = tokens.sublist(0, tokens.length - 1);
+      if (rest.isNotEmpty && _isOperator(rest.last)) {
+        _pendingOperator = rest.last;
+        rest = rest.sublist(0, rest.length - 1);
+      }
+      _committed.addAll(rest);
+      _restoreEngineFromToken(last);
+    }
+
+    notifyListeners();
   }
 }

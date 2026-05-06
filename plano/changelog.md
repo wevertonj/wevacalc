@@ -606,12 +606,55 @@ Widget customizado que substituiu o `TextField` padrão no display da calculador
 - **Total novos: 22 testes — Total geral: 430 testes — 100% verde**
 - `flutter analyze` — zero issues
 
-## [Não iniciado] Etapa 10 — Polimento, Integração e Revisão Final
+## [Concluída] Etapa 10 — Copiar e Colar
+
+### ClipboardService
+
+- Interface `ClipboardService` em `lib/data/services/clipboard_service.dart` com `copyText` e `readText`
+- Implementação `ClipboardServiceImpl` (`clipboard_service_impl.dart`) usando `Clipboard.setData/getData` do Flutter
+- Registrado como lazy singleton no GetIt
+- Mock `MockClipboardService` em `test/mocks/`
+
+### PasteInputParser
+
+- `lib/utils/paste_input_parser.dart` — converte texto bruto em lista de tokens normalizados (`x.yy`, `+ − × ÷`, `(`, `)`, `xx.yy%`)
+- Normaliza variantes de operadores (`*`/`x`/`X` → `×`, `/` → `÷`, `-` → `−`)
+- Detecta separador decimal vs separador de milhar com heurística (último separador é decimal quando há ambos)
+- Inteiros sempre face value, padded com `.00` (`1250` → `1250.00`, `10 + 5` → `10.00 + 5.00`)
+- Decimais com ponto ou vírgula preservam casas (`12.5` → `12.50`)
+- Validação de balanceamento de parênteses, posicionamento de operadores e atomicidade
+
+### CalculatorViewModel — Copiar/Colar
+
+- Recebe `ClipboardService` no construtor (dependência obrigatória)
+- Getters derivados: `hasExpression`, `hasResult`, `hasHistory` para visibilidade dos itens do menu
+- `copyExpression()` — copia `fullDisplayText` para a área de transferência
+- `copyResult()` — copia `previewResult` quando disponível, ou o display pós-`=`
+- `copyHistory()` — copia toda a timeline da sessão (`<expr> = <result>`, uma por linha)
+- `pasteFromClipboard()` — lê, valida via `PasteInputParser`, aplica os tokens substituindo o estado atual; retorna `false` quando vazio/inválido
+- `clipboardHasText()` — probe não-destrutivo usado pelo menu para habilitar/desabilitar a opção "Colar"
+
+### CalculatorContextMenu
+
+- `lib/ui/calculator/widgets/calculator_context_menu.dart` — menu de contexto via `showMenu`, ancorado na posição global do toque longo
+- Ativado por `GestureDetector.onLongPressStart` envolvendo `TimelineDisplay` em `CalculatorPage`
+- Itens visíveis condicionalmente conforme `hasExpression`/`hasResult`/`hasHistory`; "Colar" sempre presente, desabilitada quando clipboard vazio
+- Snackbar de confirmação (`copied`) ou erro (`pasteInvalid`) via `ScaffoldMessenger`
+- Ícones `content_copy_rounded` / `content_paste_rounded` em estilo Material rounded
+
+### Internacionalização
+
+- Novas strings ARB (en/pt/es): `copyExpression`, `copyResult`, `copyHistory`, `paste`, `pasteInvalid`, `copied`
+
+### Testes
+
+- `paste_input_parser_test.dart` — 22 testes (números isolados, expressões, operadores normalizados, parênteses, `%`, casos inválidos)
+- `clipboard_service_test.dart` — 4 testes (copy/read, vazio, string vazia)
+- `calculator_view_model_test.dart` — +20 testes (estado derivado `hasExpression/hasResult/hasHistory`, `copyExpression`, `copyResult`, `copyHistory`, `pasteFromClipboard` em todos os cenários)
+- `calculator_context_menu_test.dart` — 5 testes (visibilidade condicional, copiar e dismiss, snackbar de erro, paste válido)
+- **Total novos: 52 testes — Total geral: 482 testes — 100% verde**
+- `flutter analyze` — zero issues
 
 ---
 
-## [Não iniciado] Etapa 11 — Copiar e Colar
-
----
-
-## [Não iniciado] Etapa 12 — Cursor Editável no Display
+## [Não iniciado] Etapa 11 — Cursor Editável no Display

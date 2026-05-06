@@ -131,5 +131,29 @@
   "languageSystem": "System",
   "@languageSystem": {
     "description": "System language option (follow device setting)"
+  },
+  "copyExpression": "Copy calculation",
+  "@copyExpression": {
+    "description": "Context menu option to copy the current expression"
+  },
+  "copyResult": "Copy result",
+  "@copyResult": {
+    "description": "Context menu option to copy the current result"
+  },
+  "copyHistory": "Copy history",
+  "@copyHistory": {
+    "description": "Context menu option to copy all session timeline entries"
+  },
+  "paste": "Paste",
+  "@paste": {
+    "description": "Context menu option to paste from the system clipboard"
+  },
+  "pasteInvalid": "Invalid clipboard content",
+  "@pasteInvalid": {
+    "description": "Snackbar message shown when pasted clipboard text is not a valid number or expression"
+  },
+  "copied": "Copied",
+  "@copied": {
+    "description": "Snackbar message confirming a successful copy"
   }
 }

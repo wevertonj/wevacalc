@@ -5,6 +5,8 @@ import 'package:wevacalc/data/repositories/history_repository.dart';
 import 'package:wevacalc/data/repositories/history_repository_impl.dart';
 import 'package:wevacalc/data/repositories/settings_repository.dart';
 import 'package:wevacalc/data/repositories/settings_repository_impl.dart';
+import 'package:wevacalc/data/services/clipboard_service.dart';
+import 'package:wevacalc/data/services/clipboard_service_impl.dart';
 import 'package:wevacalc/ui/calculator/calculator_view_model.dart';
 import 'package:wevacalc/ui/history/history_view_model.dart';
 import 'package:wevacalc/ui/settings/settings_view_model.dart';
@@ -23,11 +25,15 @@ void setupDependencies() {
     () => SettingsRepositoryImpl(),
   );
 
+  // Services
+  getIt.registerLazySingleton<ClipboardService>(() => ClipboardServiceImpl());
+
   // ViewModels
-  getIt.registerFactory<CalculatorViewModel>(
+  getIt.registerLazySingleton<CalculatorViewModel>(
     () => CalculatorViewModel(
       historyRepository: getIt<HistoryRepository>(),
       settingsRepository: getIt<SettingsRepository>(),
+      clipboardService: getIt<ClipboardService>(),
     ),
   );
   getIt.registerFactory<HistoryViewModel>(

@@ -87,3 +87,32 @@ Toda operação avaliada (ao pressionar `=`) é salva no histórico (SQLite) com
 ## Fila de Toques
 
 Todo toque em qualquer botão é enfileirado e processado em ordem, mesmo durante animações de feedback. O `onPressed` é despachado no `onTapDown` (sem aguardar `tapUp`), eliminando latência. Não há `debounce`/`throttle` — toques nunca são descartados. Animações (LED glow, flash de fundo) são independentes do despacho da ação.
+
+## Copiar e Colar
+
+O display da calculadora suporta copiar e colar via menu de contexto, ativado por **toque longo** sobre a área da timeline. As opções aparecem condicionalmente conforme o estado atual:
+
+- **Copiar cálculo**: visível quando há expressão na entrada atual; copia o texto completo do display (ex: `1000.00 + 10.00%`)
+- **Copiar resultado**: visível quando há prévia ou resultado pós-`=`; copia o valor numérico
+- **Copiar histórico**: visível quando a timeline da sessão tem entradas; copia todas no formato `<expressão> = <resultado>` (uma por linha)
+- **Colar**: sempre visível; desabilitado quando a área de transferência está vazia
+
+### Validação e Normalização do Colar
+
+A entrada colada passa por um parser que aceita:
+
+- **Inteiros**: padded com `.00` (face value, ex: `1250` → `1250.00`)
+- **Decimais com ponto**: preservam as casas decimais (ex: `12.50`, `12.5` → `12.50`)
+- **Decimais com vírgula**: vírgula tratada como separador decimal (ex: `12,50`)
+- **Separador de milhar**: ignorado (ex: `1.000,00` → `1000.00`, `1,000.00` → `1000.00`)
+- **Operadores**: aceita variantes (`*`, `x`, `X` → `×`; `/` → `÷`; `-` → `−`)
+- **Expressões**: parsed por completo (ex: `10 + 5`, `(10 + 5) × 2`, `100 + 10%`)
+
+Conteúdo inválido exibe um snackbar com mensagem localizada (`pasteInvalid`). Operações bem-sucedidas exibem o snackbar `copied`.
+
+### Implementação
+
+- `ClipboardService` (interface em `lib/data/services/`) abstrai o `Clipboard` do Flutter, permitindo mock nos testes
+- `PasteInputParser` (em `lib/utils/`) converte texto bruto em tokens normalizados (`x.yy`, operadores, parênteses, `%`)
+- `CalculatorViewModel` expõe `copyExpression()`, `copyResult()`, `copyHistory()`, `pasteFromClipboard()` e os getters `hasExpression`, `hasResult`, `hasHistory` para a UI
+- `CalculatorContextMenu` (widget) renderiza o menu via `showMenu`, ancorado na posição global do toque longo

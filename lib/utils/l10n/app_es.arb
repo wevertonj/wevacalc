@@ -32,5 +32,11 @@
   "languageEnglish": "English",
   "languagePortuguese": "Português",
   "languageSpanish": "Español",
-  "languageSystem": "Sistema"
+  "languageSystem": "Sistema",
+  "copyExpression": "Copiar cálculo",
+  "copyResult": "Copiar resultado",
+  "copyHistory": "Copiar historial",
+  "paste": "Pegar",
+  "pasteInvalid": "Contenido inválido para pegar",
+  "copied": "Copiado"
 }
