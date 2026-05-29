@@ -1,0 +1,32 @@
+flutter_launcher_icons:
+  # Android
+  android: true
+  # iOS
+  ios: true
+  # Web
+  web:
+    generate: true
+    image_path: assets/branding/logo.png
+  # Windows
+  windows:
+    generate: true
+    image_path: assets/branding/logo.png
+    icon_size: 48
+  # Linux
+  linux:
+    generate: true
+    image_path: assets/branding/logo.png
+  # macOS
+  macos:
+    generate: true
+    image_path: assets/branding/logo.png
+
+  # Imagem-fonte para Android e iOS (alta resolução, sem padding)
+  image_path: assets/branding/logo.png
+
+  # Android — ícone adaptativo (Android 8+)
+  adaptive_icon_background: '#181818'
+  adaptive_icon_foreground: assets/branding/logo.png
+
+  # Remove os cantos arredondados do Android legacy (a logo já tem)
+  min_sdk_android: 21

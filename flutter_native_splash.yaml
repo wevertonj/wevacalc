@@ -1,0 +1,26 @@
+flutter_native_splash:
+  # Cor de fundo do splash — light e dark
+  color: '#F4F4F5'
+  color_dark: '#181818'
+
+  # Logo centralizado
+  image: assets/branding/logo.png
+  image_dark: assets/branding/logo.png
+
+  # Plataformas
+  android: true
+  ios: true
+  web: false
+
+  # Android 12+ (API 31+) — splash nativo com ícone adaptativo
+  # logo_splash_android12.png tem 25% de padding em cada lado → logo ocupa 66.7%
+  # da área total, ficando dentro do safe zone circular do Android 12+
+  android_12:
+    image: assets/branding/logo_splash_android12.png
+    image_dark: assets/branding/logo_splash_android12.png
+    color: '#F4F4F5'
+    color_dark: '#181818'
+
+  android_gravity: center
+  ios_content_mode: center
+  fullscreen: false

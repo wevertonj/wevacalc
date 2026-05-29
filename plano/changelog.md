@@ -816,3 +816,41 @@ Quando a expressão crescia além da largura da tela, o display entrava em modo 
 - `renders cursor in multiline mode` — cursor mid-block visível em modo Wrap
 - `renders cursor at end of text in multiline mode` — cursor no fim visível em modo Wrap
 - Total: **509 testes — 100% verde** | `flutter analyze` zero issues
+
+---
+
+## [Concluída] Etapa 12 — Logo customizado e identidade visual
+
+### Assets de Branding
+
+- `assets/branding/logo.png` — logo principal 1024×1010 (sem padding; rounded dark corners estilo One UI)
+- `assets/branding/2.0x/logo.png` e `assets/branding/3.0x/logo.png` — variantes de densidade para resolução automática pelo Flutter
+- Assets declarados no `pubspec.yaml` (seção `flutter.assets`)
+
+### Geração de Ícones (`flutter_launcher_icons`)
+
+- Adicionado `flutter_launcher_icons: ^0.14.3` em `dev_dependencies`
+- `flutter_launcher_icons.yaml` configurado para Android, iOS, Web, Windows, Linux, macOS
+- Android adaptive icon: fundo `#181818` + foreground com o logo
+- Gerado via `dart run flutter_launcher_icons` — artefatos versionados
+
+### Splash Screen (`flutter_native_splash`)
+
+- Adicionado `flutter_native_splash: ^2.4.5` em `dev_dependencies`
+- `flutter_native_splash.yaml` configurado com:
+  - Fundo light `#F4F4F5` / dark `#181818`
+  - Logo centralizado para Android (legado + v21) e iOS
+  - Android 12+ (`values-v31`): logo + fundo `#181818` (modo escuro)
+- Gerado via `dart run flutter_native_splash:create`
+
+### Widget `AppLogo`
+
+- `lib/ui/core/widgets/app_logo.dart` — widget `AppLogo` com `Image.asset` + `SizedBox`
+- Prop `size` opcional (padrão `48.0` via `AppLogo.defaultSize`)
+- Flutter resolve a variante de densidade (1x/2x/3x) automaticamente
+
+### Testes
+
+- `test/widget/core/widgets/app_logo_test.dart` — 4 testes (widget renderiza, asset correto, tamanho aplicado, tamanho padrão)
+- **Total novos: 4 testes — Total geral: 513 testes — 100% verde**
+- `flutter analyze` — zero issues

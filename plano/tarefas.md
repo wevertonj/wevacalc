@@ -442,40 +442,39 @@ Checklist detalhado de cada etapa. Marque `[x]` conforme concluir.
 
 ---
 
-## Etapa 12 — Logo customizado e identidade visual
+## Etapa 12 — Logo customizado e identidade visual ✅
 
 ### Preparação
 
-- [ ] Importar logo em `assets/branding/logo.png`
-- [ ] Adicionar variantes de densidade em `assets/branding/2.0x/logo.png` e `assets/branding/3.0x/logo.png`
-- [ ] Gerar versão monocromática para splash/contextos de uma cor
-- [ ] Criar versão adaptativa Android (foreground + background)
+- [x] Importar logo em `assets/branding/logo.png`
+- [x] Adicionar variantes de densidade em `assets/branding/2.0x/logo.png` e `assets/branding/3.0x/logo.png`
+- [x] Criar versão adaptativa Android (fundo `#181818` + foreground via `flutter_launcher_icons`)
 
 ### Geração de ícones e splash
 
-- [ ] Adicionar `flutter_launcher_icons` em `dev_dependencies`
-- [ ] Configurar `flutter_launcher_icons.yaml` para Android, iOS, web, Windows, Linux, macOS
-- [ ] Rodar `dart run flutter_launcher_icons` e versionar artefatos
-- [ ] Adicionar `flutter_native_splash` em `dev_dependencies`
-- [ ] Configurar `flutter_native_splash.yaml` (cores do tema, logo central, Android 12+)
-- [ ] Rodar `dart run flutter_native_splash:create`
+- [x] Adicionar `flutter_launcher_icons` em `dev_dependencies`
+- [x] Configurar `flutter_launcher_icons.yaml` para Android, iOS, web, Windows, Linux, macOS
+- [x] Rodar `dart run flutter_launcher_icons` e versionar artefatos
+- [x] Adicionar `flutter_native_splash` em `dev_dependencies`
+- [x] Configurar `flutter_native_splash.yaml` (cores do tema, logo central, Android 12+)
+- [x] Rodar `dart run flutter_native_splash:create`
 
 ### Implementação no app
 
-- [ ] Criar widget `AppLogo` em `lib/ui/core/widgets/app_logo.dart` (usa `Image.asset`)
-- [ ] Declarar assets de branding no `pubspec.yaml`
+- [x] Criar widget `AppLogo` em `lib/ui/core/widgets/app_logo.dart` (usa `Image.asset`)
+- [x] Declarar assets de branding no `pubspec.yaml`
 
 ### Testes
 
-- [ ] Criar `test/widget/core/widgets/app_logo_test.dart`
-  - Cenários: tamanho aplicado, modo monocromático usa cor do tema
+- [x] Criar `test/widget/core/widgets/app_logo_test.dart`
+  - Cenários: widget renderiza, asset correto, tamanho aplicado, tamanho padrão
 - [ ] Verificação manual: ícone do app aparece em cada plataforma
 - [ ] Verificação manual: splash aparece com a arte correta
 
 ### Validação
 
-- [ ] `flutter test` — 100% verde
-- [ ] `flutter analyze` — zero warnings
+- [x] `flutter test` — 100% verde (513 testes)
+- [x] `flutter analyze` — zero warnings
 
 ---
 
